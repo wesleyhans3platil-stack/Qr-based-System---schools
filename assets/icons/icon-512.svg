@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#4338ca"/>
+  <text x="256" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="192" fill="white">QR</text>
+  <text x="256" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-weight="600" font-size="52" fill="rgba(255,255,255,0.7)">Dashboard</text>
+</svg>

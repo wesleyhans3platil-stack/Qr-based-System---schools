@@ -1,0 +1,41 @@
+# ══════════════════════════════════════════════════════════
+# GIT IGNORE — EduTrack QR Attendance System
+# ══════════════════════════════════════════════════════════
+
+# Dependencies
+node_modules/
+vendor/
+
+# IDE / Editor
+.idea/
+.cursor/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Android app (separate project, don't deploy to Railway)
+android-app/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# APK files
+*.apk
+
+# Runtime / Cache
+config/.db_initialized
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Uploaded files — keep logos (needed for the system)
+# Note: Railway filesystem is ephemeral, so logos must be in the repo
+!assets/uploads/logos/.gitkeep
+
+# Environment overrides (if any)
+.env

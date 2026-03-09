@@ -1,0 +1,44 @@
+# ══════════════════════════════════════════════════════════════════
+# APACHE PERFORMANCE CONFIG — 800 concurrent scanner laptops
+# ══════════════════════════════════════════════════════════════════
+
+# Keep connections alive to avoid TCP handshake on every scan request
+<IfModule mod_headers.c>
+    Header set Connection keep-alive
+</IfModule>
+
+# Enable Keep-Alive with tuned settings
+<IfModule mod_reqtimeout.c>
+    RequestReadTimeout header=20-40,MinRate=500 body=20,MinRate=500
+</IfModule>
+
+# ── GZIP Compression — reduces payload size for scan responses ──
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/javascript
+</IfModule>
+
+# ── Cache static assets (fonts, icons, CSS) — 800 laptops don't re-download ──
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>
+
+# ── Prevent directory listing ──
+Options -Indexes
+
+# ── Protect config files ──
+<FilesMatch "\.(bak|sql|ini|log|sh)$">
+    Require all denied
+</FilesMatch>
+
+<Files ".db_initialized">
+    Require all denied
+</Files>

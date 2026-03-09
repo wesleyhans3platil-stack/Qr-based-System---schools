@@ -1,0 +1,312 @@
+<?php
+session_start();
+require_once '../config/database.php';
+if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'asst_superintendent') {
+    header('Location: ../admin_login.php');
+    exit;
+}
+
+$conn = getDBConnection();
+$current_page = 'dashboard';
+$page_title = 'ASDS Dashboard';
+$filter_date = $_GET['date'] ?? date('Y-m-d');
+$yesterday = date('Y-m-d', strtotime($filter_date . ' -1 day'));
+$view_school = $_GET['school'] ?? '';
+
+// Division-wide stats
+$total_schools = 0;
+$r = $conn->query("SELECT COUNT(*) as cnt FROM schools WHERE status='active'");
+if ($r) $total_schools = $r->fetch_assoc()['cnt'];
+
+$total_students = 0;
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active'");
+if ($r) $total_students = $r->fetch_assoc()['cnt'];
+
+$total_present = 0;
+$r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL");
+if ($r) $total_present = $r->fetch_assoc()['cnt'];
+
+$total_absent = $total_students - $total_present;
+$div_att_pct = $total_students > 0 ? round(($total_present / $total_students) * 100, 1) : 0;
+
+// Per-school data
+$schools_data = [];
+$sql = "SELECT s.id, s.name, s.code,
+        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active') as total_students,
+        (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers,
+        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
+        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present
+        FROM schools s WHERE s.status='active' ORDER BY s.name";
+$r = $conn->query($sql);
+if ($r) while ($row = $r->fetch_assoc()) $schools_data[] = $row;
+
+// If drill-down into a school
+$drill_school = null;
+$drill_sections = [];
+$drill_absent_2day = [];
+if ($view_school) {
+    $vs = intval($view_school);
+    $r = $conn->query("SELECT * FROM schools WHERE id = $vs");
+    if ($r) $drill_school = $r->fetch_assoc();
+
+    // Section breakdown
+    $sql = "SELECT sec.id, sec.name as section_name, gl.name as grade_name,
+            (SELECT COUNT(*) FROM students st WHERE st.section_id = sec.id AND st.status='active') as total,
+            (SELECT COUNT(DISTINCT a.person_id) FROM attendance a JOIN students st ON a.person_id = st.id WHERE st.section_id = sec.id AND a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
+            (SELECT COUNT(DISTINCT a.person_id) FROM attendance a JOIN students st ON a.person_id = st.id WHERE st.section_id = sec.id AND a.person_type='student' AND a.date='$filter_date' AND a.status='late') as late_count
+            FROM sections sec JOIN grade_levels gl ON sec.grade_level_id = gl.id
+            WHERE sec.school_id = $vs AND sec.status='active' ORDER BY gl.id, sec.name";
+    $r = $conn->query($sql);
+    if ($r) while ($row = $r->fetch_assoc()) $drill_sections[] = $row;
+
+    // 2-day absentees for this school
+    $sql = "SELECT s.lrn, s.name, gl.name as grade, sec.name as section
+            FROM students s JOIN grade_levels gl ON s.grade_level_id = gl.id JOIN sections sec ON s.section_id = sec.id
+            WHERE s.status='active' AND s.school_id = $vs
+            AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
+            AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)
+            ORDER BY gl.name, sec.name, s.name";
+    $r = $conn->query($sql);
+    if ($r) while ($row = $r->fetch_assoc()) $drill_absent_2day[] = $row;
+}
+
+// Weekly trend (for drill-down)
+$trend_data = [];
+if ($drill_school) {
+    $vs = intval($view_school);
+    $school_total = 0;
+    $r2 = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $vs");
+    if ($r2) $school_total = $r2->fetch_assoc()['cnt'];
+    for ($i = 6; $i >= 0; $i--) {
+        $d = date('Y-m-d', strtotime("-$i days", strtotime($filter_date)));
+        $cnt = 0;
+        $r2 = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$d' AND time_in IS NOT NULL AND school_id = $vs");
+        if ($r2) $cnt = $r2->fetch_assoc()['cnt'];
+        $trend_data[] = ['date' => date('M d', strtotime($d)), 'present' => $cnt, 'absent' => $school_total - $cnt];
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?php include 'includes/header.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <?php include 'includes/sidebar.php'; ?>
+
+    <div class="main-content">
+        <?php if ($drill_school): ?>
+        <!-- ─── DRILL-DOWN: School Detail View ─── -->
+        <div class="top-bar">
+            <div class="page-header">
+                <a href="asds_dashboard.php?date=<?= $filter_date ?>" class="btn btn-outline btn-sm" style="margin-bottom:12px;">
+                    <i class="fas fa-arrow-left"></i> Back to All Schools
+                </a>
+                <h1><i class="fas fa-school" style="color:var(--primary); margin-right:8px;"></i> <?= htmlspecialchars($drill_school['name']) ?></h1>
+                <p>Detailed School Monitoring — <?= formatDate($filter_date) ?></p>
+            </div>
+            <div class="top-bar-right">
+                <form method="GET" style="display:flex; align-items:center; gap:8px;">
+                    <input type="hidden" name="school" value="<?= $view_school ?>">
+                    <input type="date" name="date" value="<?= $filter_date ?>" class="form-control" style="width:180px;" onchange="this.form.submit()">
+                </form>
+            </div>
+        </div>
+
+        <?php
+        $s = null;
+        foreach ($schools_data as $sc) { if ($sc['id'] == $view_school) { $s = $sc; break; } }
+        $s_absent = ($s['total_students'] ?? 0) - ($s['present'] ?? 0);
+        $s_pct = ($s['total_students'] ?? 0) > 0 ? round(($s['present'] / $s['total_students']) * 100, 1) : 0;
+        ?>
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-icon primary"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-info"><h3><?= $s['total_students'] ?? 0 ?></h3><span>Total Students</span></div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info"><h3><?= $s['present'] ?? 0 ?></h3><span>Present Today</span></div>
+            </div>
+            <div class="stat-card error">
+                <div class="stat-icon error"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-info"><h3><?= $s_absent ?></h3><span>Absent Today</span></div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-icon info"><i class="fas fa-percentage"></i></div>
+                <div class="stat-info"><h3><?= $s_pct ?>%</h3><span>Attendance Rate</span></div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:24px;">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-bar"></i> Weekly Attendance Trend</div>
+                <div class="chart-container" style="height:250px;"><canvas id="drillTrendChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--error);"></i> 2-Day Consecutive Absentees <span class="badge badge-error" style="margin-left:auto;"><?= count($drill_absent_2day) ?></span></div>
+                <div style="max-height:300px; overflow-y:auto;">
+                    <?php if (empty($drill_absent_2day)): ?>
+                    <div class="empty-state" style="padding:20px;"><i class="fas fa-check-circle" style="color:var(--success);font-size:1.5rem;"></i><p>No 2-day consecutive absentees</p></div>
+                    <?php else: foreach ($drill_absent_2day as $abs): ?>
+                    <div class="absence-flag">
+                        <div class="flag-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="flag-info">
+                            <strong><?= htmlspecialchars($abs['name']) ?></strong>
+                            <span>LRN: <?= htmlspecialchars($abs['lrn']) ?> &bull; <?= htmlspecialchars($abs['grade']) ?> — <?= htmlspecialchars($abs['section']) ?></span>
+                        </div>
+                    </div>
+                    <?php endforeach; endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title"><i class="fas fa-layer-group"></i> Grade & Section Breakdown</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Grade</th><th>Section</th><th>Total</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($drill_sections as $sec):
+                        $sec_a = $sec['total'] - $sec['present'];
+                        $sec_r = $sec['total'] > 0 ? round(($sec['present']/$sec['total'])*100,1) : 0;
+                    ?>
+                    <tr>
+                        <td><strong><?= htmlspecialchars($sec['grade_name']) ?></strong></td>
+                        <td><?= htmlspecialchars($sec['section_name']) ?></td>
+                        <td><?= $sec['total'] ?></td>
+                        <td class="text-success fw-600"><?= $sec['present'] ?></td>
+                        <td class="text-error fw-600"><?= $sec_a ?></td>
+                        <td class="text-warning fw-600"><?= $sec['late_count'] ?></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div class="progress-bar" style="width:80px;">
+                                    <div class="progress-bar-fill <?= $sec_r >= 90 ? 'high' : ($sec_r >= 75 ? 'medium' : 'low') ?>" style="width:<?= $sec_r ?>%;"></div>
+                                </div>
+                                <span class="fw-600" style="font-size:0.8rem;"><?= $sec_r ?>%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+        const drillCtx = document.getElementById('drillTrendChart').getContext('2d');
+        new Chart(drillCtx, {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode(array_column($trend_data, 'date')) ?>,
+                datasets: [
+                    { label: 'Present', data: <?= json_encode(array_column($trend_data, 'present')) ?>, backgroundColor: 'rgba(22,163,74,0.7)', borderRadius: 6, barPercentage: 0.6 },
+                    { label: 'Absent', data: <?= json_encode(array_column($trend_data, 'absent')) ?>, backgroundColor: 'rgba(220,38,38,0.7)', borderRadius: 6, barPercentage: 0.6 }
+                ]
+            },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'#e2e8f0'}}} }
+        });
+        </script>
+
+        <?php else: ?>
+        <!-- ─── MAIN: All Schools Card View ─── -->
+        <div class="top-bar">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-pie" style="color:var(--primary); margin-right:8px;"></i> Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?></h1>
+                <p>Division Monitoring — All Schools Overview</p>
+            </div>
+            <div class="top-bar-right">
+                <div class="date-display"><i class="fas fa-calendar-alt"></i> <?= formatDate($filter_date) ?></div>
+                <form method="GET" style="display:flex; gap:8px;">
+                    <input type="date" name="date" value="<?= $filter_date ?>" class="form-control" style="width:180px;" onchange="this.form.submit()">
+                </form>
+            </div>
+        </div>
+
+        <!-- Division Summary -->
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-icon primary"><i class="fas fa-school"></i></div>
+                <div class="stat-info"><h3><?= $total_schools ?></h3><span>Total Schools</span></div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-icon info"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-info"><h3><?= $total_students ?></h3><span>Total Students</span></div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info"><h3><?= $total_present ?></h3><span>Present Today</span></div>
+            </div>
+            <div class="stat-card error">
+                <div class="stat-icon error"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-info"><h3><?= $total_absent ?></h3><span>Absent Today</span></div>
+            </div>
+            <div class="stat-card" style="border-left:4px solid var(--primary);">
+                <div class="stat-icon primary"><i class="fas fa-percentage"></i></div>
+                <div class="stat-info"><h3><?= $div_att_pct ?>%</h3><span>Division Attendance</span></div>
+            </div>
+        </div>
+
+        <!-- School Cards -->
+        <div style="margin-bottom:16px;">
+            <h3 style="font-size:1.1rem; font-weight:700; color:var(--text);"><i class="fas fa-school" style="color:var(--primary); margin-right:8px;"></i> Schools — Click to view details</h3>
+        </div>
+        <div class="school-cards-grid">
+            <?php foreach ($schools_data as $s):
+                $s_absent = $s['total_students'] - $s['present'];
+                $s_pct = $s['total_students'] > 0 ? round(($s['present'] / $s['total_students']) * 100, 1) : 0;
+                $pct_class = $s_pct >= 90 ? 'high' : ($s_pct >= 75 ? 'medium' : 'low');
+            ?>
+            <a href="asds_dashboard.php?school=<?= $s['id'] ?>&date=<?= $filter_date ?>" style="text-decoration:none; color:inherit;">
+                <div class="school-card">
+                    <div class="school-card-header">
+                        <div class="school-card-icon"><i class="fas fa-school"></i></div>
+                        <div class="school-card-name"><?= htmlspecialchars($s['name']) ?></div>
+                    </div>
+                    <div class="school-card-stats">
+                        <div class="school-card-stat">
+                            <div class="stat-value"><?= $s['total_students'] ?></div>
+                            <div class="stat-label">Students</div>
+                        </div>
+                        <div class="school-card-stat">
+                            <div class="stat-value text-success"><?= $s['present'] ?></div>
+                            <div class="stat-label">Present</div>
+                        </div>
+                        <div class="school-card-stat">
+                            <div class="stat-value text-error"><?= $s_absent ?></div>
+                            <div class="stat-label">Absent</div>
+                        </div>
+                        <div class="school-card-stat">
+                            <div class="stat-value"><?= $s['teachers_present'] ?>/<?= $s['total_teachers'] ?></div>
+                            <div class="stat-label">Teachers</div>
+                        </div>
+                    </div>
+                    <div class="school-card-footer">
+                        <span class="attendance-pct <?= $pct_class ?>"><?= $s_pct ?>% Attendance</span>
+                        <span class="btn btn-sm btn-outline"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill <?= $pct_class ?>" style="width:<?= $s_pct ?>%;"></div>
+                    </div>
+                </div>
+            </a>
+            <?php endforeach; ?>
+
+            <?php if (empty($schools_data)): ?>
+            <div class="empty-state" style="grid-column:1/-1;">
+                <i class="fas fa-school"></i>
+                <h3>No Schools Found</h3>
+                <p>No active schools in the division yet.</p>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <script>
+    // Auto-refresh every 60 seconds
+    setTimeout(() => location.reload(), 60000);
+    </script>
+</body>
+</html>

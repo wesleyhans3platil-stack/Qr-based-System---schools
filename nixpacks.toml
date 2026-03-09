@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ['php82', 'php82Extensions.mysqli', 'php82Extensions.gd', 'php82Extensions.mbstring', 'php82Extensions.curl', 'php82Extensions.zip', 'php82Extensions.fileinfo', 'python311']
+
+[phases.install]
+cmds = ['mkdir -p /assets/uploads/logos']
+
+[start]
+cmd = 'php -S 0.0.0.0:${PORT:-8080} -t /app /app/router.php'
