@@ -1,12 +1,13 @@
 FROM php:8.2-apache
 
-# Install PHP extensions needed by the app
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd zip mbstring fileinfo \
+    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev libonig-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions needed by the app
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install mysqli pdo pdo_mysql gd zip mbstring
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite headers expires deflate
