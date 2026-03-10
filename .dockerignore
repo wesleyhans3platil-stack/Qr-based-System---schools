@@ -1,0 +1,7 @@
+.git
+.gitignore
+android-app
+database
+*.md
+*.sql
+*.bak

@@ -53,7 +53,7 @@ if ($conn->connect_error) {
 }
 
 // Create database if not exists (lightweight check)
-$conn->query("CREATE DATABASE IF NOT EXISTS " . DB_NAME);
+$conn->query("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "`");
 $conn->select_db(DB_NAME);
 $conn->set_charset("utf8mb4");
 
