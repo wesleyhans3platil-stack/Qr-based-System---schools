@@ -117,9 +117,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4338ca">
     <title>Dashboard — EduTrack | SDO-Sipalay City</title>
-    <link rel="manifest" href="manifest.json">
     <?php if ($systemLogo): ?><link rel="icon" type="image/png" href="<?= $systemLogo ?>"><?php endif; ?>
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -510,47 +508,16 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     </nav>
 
     <script>
-    // ══════════════════════════════════════════════════════════════
-    // SERVICE WORKER + PUSH NOTIFICATIONS
-    // ══════════════════════════════════════════════════════════════
-    let swRegistration = null;
-    let isSubscribed = false;
-    const isNativeApp = navigator.userAgent.includes('QRAttendanceApp') || navigator.userAgent.includes('wv');
-
-    // Debug: log user agent to help troubleshoot
-    console.log('User Agent:', navigator.userAgent);
-    console.log('isNativeApp:', isNativeApp);
-
-    if (isNativeApp) {
-        // Native app handles notifications via WorkManager — skip service worker push
-        updateBellUI(true);
-        isSubscribed = true;
-    } else if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-            swRegistration = reg;
-            checkSubscription();
-        }).catch(() => {});
-    } else if (isNativeApp) {
-        // Native app handles notifications via WorkManager
-        updateBellUI(true);
+    // Unregister any leftover service workers from old PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(r => r.unregister());
+        });
     }
 
-    async function checkSubscription() {
-        if (isNativeApp) {
-            // Native app uses built-in background notifications
-            isSubscribed = true;
-            updateBellUI(true);
-            return;
-        }
-        if (!swRegistration || !('PushManager' in window)) {
-            updateBellUI(false);
-            return;
-        }
-        const sub = await swRegistration.pushManager.getSubscription();
-        isSubscribed = !!sub;
-        updateBellUI(isSubscribed);
-    }
-
+    // ══════════════════════════════════════════════════════════════
+    // NOTIFICATIONS (Native app handles via WorkManager)
+    // ══════════════════════════════════════════════════════════════
     function updateBellUI(subscribed) {
         const dot = document.getElementById('notifDot');
         const icon = document.getElementById('bellIcon');
@@ -566,79 +533,11 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         }
     }
 
-    async function toggleNotifications() {
-        if (isNativeApp) {
-            showToast('Notifications are managed by the app automatically.', true);
-            return;
-        }
-        if (!swRegistration) {
-            showToast('Service worker not ready. Reload the page.', false);
-            return;
-        }
-        if (!('PushManager' in window)) {
-            showToast('Push notifications not supported on this browser.', false);
-            return;
-        }
+    // Native app — notifications handled automatically
+    updateBellUI(true);
 
-        if (isSubscribed) {
-            // Unsubscribe
-            const sub = await swRegistration.pushManager.getSubscription();
-            if (sub) {
-                await fetch('api/push_subscribe.php', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ endpoint: sub.endpoint })
-                });
-                await sub.unsubscribe();
-            }
-            isSubscribed = false;
-            updateBellUI(false);
-            showToast('Notifications disabled', false);
-        } else {
-            // Subscribe
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    showToast('Notification permission denied', false);
-                    return;
-                }
-
-                // Get VAPID public key from server
-                const keyResp = await fetch('api/vapid_public_key.php');
-                const keyData = await keyResp.json();
-                const vapidPublicKey = urlBase64ToUint8Array(keyData.publicKey);
-
-                const sub = await swRegistration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: vapidPublicKey
-                });
-
-                // Send subscription to server
-                await fetch('api/push_subscribe.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subscription: sub.toJSON() })
-                });
-
-                isSubscribed = true;
-                updateBellUI(true);
-                showToast('Notifications enabled! You\'ll get absence alerts.', true);
-            } catch (err) {
-                console.error('Push subscription failed:', err);
-                showToast('Failed to enable notifications', false);
-            }
-        }
-    }
-
-    function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
+    function toggleNotifications() {
+        showToast('Notifications are managed by the app automatically.', true);
     }
 
     function showToast(msg, success) {

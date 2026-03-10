@@ -74,7 +74,6 @@ if ($lr && $lrow = $lr->fetch_assoc()) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#4338ca">
     <title>Login — EduTrack | SDO-Sipalay City</title>
-    <link rel="manifest" href="manifest.json">
     <?php if ($systemLogo): ?><link rel="icon" type="image/png" href="<?= $systemLogo ?>"><?php endif; ?>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -212,26 +211,7 @@ if ($lr && $lrow = $lr->fetch_assoc()) {
     </div>
 
     <script>
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
-
-    // PWA Install Prompt
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        document.getElementById('installBanner').classList.add('visible');
-    });
-
-    document.getElementById('installBtn').addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        document.getElementById('installBanner').classList.remove('visible');
-    });
+    // No PWA/service worker — native Android app handles everything
     </script>
 </body>
 </html>
