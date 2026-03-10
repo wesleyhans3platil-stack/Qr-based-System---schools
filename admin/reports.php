@@ -238,5 +238,6 @@ $schools_list = []; $r = $conn->query("SELECT id, name FROM schools WHERE status
             <?php endif; ?>
         </div>
     </div>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

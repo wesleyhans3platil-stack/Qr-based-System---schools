@@ -351,10 +351,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                 </div>
             </div>
             <div class="header-actions">
-                <button class="header-btn" id="notifBell" onclick="toggleNotifications()" title="Notifications">
-                    <i class="fas fa-bell" id="bellIcon"></i>
-                    <span class="notif-dot" id="notifDot"></span>
-                </button>
                 <button class="header-btn" onclick="location.reload()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
                 <a href="admin/logout.php" class="header-btn" title="Logout"><i class="fas fa-right-from-bracket"></i></a>
             </div>
@@ -501,10 +497,11 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
 
     <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
-        <button class="nav-item active"><i class="fas fa-chart-pie"></i> Dashboard</button>
-        <button class="nav-item" id="notifNavBtn" onclick="toggleNotifications()"><i class="fas fa-bell"></i> <span id="notifNavLabel">Alerts</span></button>
-        <button class="nav-item" onclick="location.reload()"><i class="fas fa-sync-alt"></i> Refresh</button>
-        <a href="admin/logout.php" class="nav-item"><i class="fas fa-right-from-bracket"></i> Logout</a>
+        <a href="app_dashboard.php" class="nav-item active"><i class="fas fa-chart-pie"></i> Dashboard</a>
+        <a href="admin/attendance.php" class="nav-item"><i class="fas fa-clipboard-list"></i> Attendance</a>
+        <a href="admin/school_browser.php" class="nav-item"><i class="fas fa-school"></i> Schools</a>
+        <a href="admin/reports.php" class="nav-item"><i class="fas fa-file-alt"></i> Reports</a>
+        <a href="Qrscanattendance.php" class="nav-item"><i class="fas fa-qrcode"></i> Scanner</a>
     </nav>
 
     <script>
@@ -513,31 +510,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         navigator.serviceWorker.getRegistrations().then(regs => {
             regs.forEach(r => r.unregister());
         });
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // NOTIFICATIONS (Native app handles via WorkManager)
-    // ══════════════════════════════════════════════════════════════
-    function updateBellUI(subscribed) {
-        const dot = document.getElementById('notifDot');
-        const icon = document.getElementById('bellIcon');
-        const navLabel = document.getElementById('notifNavLabel');
-        if (subscribed) {
-            dot.classList.add('active');
-            icon.className = 'fas fa-bell';
-            if (navLabel) navLabel.textContent = 'Alerts On';
-        } else {
-            dot.classList.remove('active');
-            icon.className = 'far fa-bell';
-            if (navLabel) navLabel.textContent = 'Alerts Off';
-        }
-    }
-
-    // Native app — notifications handled automatically
-    updateBellUI(true);
-
-    function toggleNotifications() {
-        showToast('Notifications are managed by the app automatically.', true);
     }
 
     function showToast(msg, success) {

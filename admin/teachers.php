@@ -256,5 +256,6 @@ $schools = []; $r = $conn->query("SELECT id, name, code FROM schools WHERE statu
         document.getElementById('qrModal').classList.add('active');
     }
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

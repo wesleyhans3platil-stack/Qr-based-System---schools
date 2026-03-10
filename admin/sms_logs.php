@@ -57,5 +57,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $logs[] = $row; }
             </div>
         </div>
     </div>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

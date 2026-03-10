@@ -904,5 +904,6 @@ if ($section_id) {
     <?php endif; ?>
 
 </main>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

@@ -181,5 +181,6 @@ $grades = []; $r = $conn->query("SELECT id, name FROM grade_levels ORDER BY id")
             </div>
         </div>
     </div>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

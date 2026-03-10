@@ -785,5 +785,6 @@ $non_school_reason = getNonSchoolDayReason(date('Y-m-d'), $conn);
         document.getElementById('resultOverlay').classList.remove('visible');
     }
     </script>
+<?php include __DIR__ . '/admin/includes/mobile_nav.php'; ?>
 </body>
 </html>

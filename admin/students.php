@@ -423,5 +423,6 @@ $sections = []; $r = $conn->query("SELECT sec.id, sec.name, sec.school_id, sec.g
         document.getElementById('qrModal').classList.add('active');
     }
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>
