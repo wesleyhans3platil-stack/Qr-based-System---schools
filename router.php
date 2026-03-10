@@ -84,6 +84,11 @@ if (is_dir($path)) {
         require $path . '/index.php';
         return true;
     }
+    // Root directory — serve admin_login.php as default
+    if ($uri === '/' && is_file(__DIR__ . '/admin_login.php')) {
+        require __DIR__ . '/admin_login.php';
+        return true;
+    }
 }
 
 // Default — let PHP handle it
