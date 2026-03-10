@@ -123,192 +123,416 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --primary: #4338ca; --primary-light: #6366f1; --primary-bg: rgba(67,56,202,0.08);
-            --bg: #f1f5f9; --card: #fff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
-            --green: #16a34a; --green-bg: #f0fdf4; --red: #dc2626; --red-bg: #fef2f2;
-            --amber: #d97706; --amber-bg: #fffbeb; --blue: #2563eb; --blue-bg: #eff6ff;
+            --primary: #4f46e5; --primary-light: #818cf8; --primary-dark: #3730a3;
+            --primary-bg: rgba(79,70,229,0.08); --primary-glow: rgba(79,70,229,0.25);
+            --bg: #f0f2f8; --bg-mesh: #e8ecf4;
+            --card: rgba(255,255,255,0.85); --card-solid: #fff;
+            --text: #0f172a; --text-secondary: #334155; --muted: #64748b; --border: rgba(226,232,240,0.8);
+            --green: #059669; --green-light: #34d399; --green-bg: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            --red: #dc2626; --red-light: #f87171; --red-bg: linear-gradient(135deg, #fef2f2, #fee2e2);
+            --amber: #d97706; --amber-light: #fbbf24; --amber-bg: linear-gradient(135deg, #fffbeb, #fef3c7);
+            --blue: #2563eb; --blue-light: #60a5fa; --blue-bg: linear-gradient(135deg, #eff6ff, #dbeafe);
+            --purple-bg: linear-gradient(135deg, #f5f3ff, #ede9fe);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 40px -8px rgba(0,0,0,0.1), 0 8px 16px -6px rgba(0,0,0,0.06);
+            --shadow-3d: 0 1px 1px rgba(0,0,0,0.08), 0 2px 2px rgba(0,0,0,0.06), 0 4px 4px rgba(0,0,0,0.04), 0 8px 8px rgba(0,0,0,0.02), 0 16px 16px rgba(0,0,0,0.01);
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
-        html, body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(79,70,229,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(34,211,238,0.03) 0%, transparent 50%),
+                var(--bg);
+        }
 
-        /* ─── App Shell ─── */
+        /* ─── Entrance Animations ─── */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.92); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes ringDraw {
+            from { stroke-dashoffset: 326.73; }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes floatGlow {
+            0%,100% { box-shadow: 0 0 20px rgba(79,70,229,0.15); }
+            50% { box-shadow: 0 0 30px rgba(79,70,229,0.25); }
+        }
+
+        /* ─── App Header — Premium Glass ─── */
         .app-header {
             position: sticky; top: 0; z-index: 100;
-            background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
-            padding: calc(12px + var(--safe-top)) 20px 16px;
+            background: linear-gradient(135deg, #3730a3 0%, #4f46e5 40%, #6366f1 70%, #818cf8 100%);
+            padding: calc(14px + var(--safe-top)) 20px 20px;
             color: #fff;
+            overflow: hidden;
+        }
+        .app-header::before {
+            content: '';
+            position: absolute; top: -60%; right: -20%; width: 260px; height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .app-header::after {
+            content: '';
+            position: absolute; bottom: -40%; left: -10%; width: 200px; height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+            pointer-events: none;
         }
         .app-header-top {
             display: flex; align-items: center; justify-content: space-between;
+            position: relative; z-index: 1;
         }
         .app-header-brand {
-            display: flex; align-items: center; gap: 12px;
+            display: flex; align-items: center; gap: 14px;
         }
         .app-header-brand .logo {
-            width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.2);
+            width: 44px; height: 44px; border-radius: 14px; overflow: hidden;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .app-header-brand .logo img { width: 100%; height: 100%; object-fit: cover; }
-        .app-header-brand .logo i { font-size: 1.1rem; color: #fff; }
-        .app-header-brand h1 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; }
-        .app-header-brand small { font-size: 0.68rem; opacity: 0.75; font-weight: 500; }
-        .header-actions { display: flex; gap: 8px; }
+        .app-header-brand .logo i { font-size: 1.15rem; color: #fff; }
+        .app-header-brand h1 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.03em; text-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+        .app-header-brand small { font-size: 0.7rem; opacity: 0.8; font-weight: 500; letter-spacing: 0.02em; }
+        .header-actions { display: flex; gap: 10px; position: relative; z-index: 1; }
         .header-btn {
-            width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.15);
-            border: none; color: #fff; font-size: 1rem; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; transition: background 0.2s;
+            width: 40px; height: 40px; border-radius: 14px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; font-size: 1rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .header-btn:hover { background: rgba(255,255,255,0.25); }
+        .header-btn:hover, .header-btn:active {
+            background: rgba(255,255,255,0.22);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
 
         /* Date bar */
         .date-bar {
-            margin-top: 14px; display: flex; align-items: center; gap: 10px;
+            margin-top: 16px; display: flex; align-items: center; gap: 10px;
+            position: relative; z-index: 1;
         }
         .date-chip {
-            display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15);
-            padding: 8px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: 600;
+            display: flex; align-items: center; gap: 7px;
+            background: rgba(255,255,255,0.13);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            padding: 9px 16px; border-radius: 12px; font-size: 0.78rem; font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.12);
         }
-        .date-chip i { font-size: 0.7rem; opacity: 0.7; }
+        .date-chip i { font-size: 0.72rem; opacity: 0.8; }
         .date-input {
-            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 8px 12px; border-radius: 10px; font-size: 0.78rem;
+            background: rgba(255,255,255,0.13);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; padding: 9px 14px; border-radius: 12px; font-size: 0.78rem;
             font-family: 'Inter', sans-serif; font-weight: 600; outline: none;
-            color-scheme: dark;
+            color-scheme: dark; transition: background 0.2s;
         }
+        .date-input:focus { background: rgba(255,255,255,0.2); }
         .live-dot {
-            width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
-            box-shadow: 0 0 8px rgba(74,222,128,0.6); animation: pulse 1.5s infinite;
+            width: 9px; height: 9px; border-radius: 50%; background: #4ade80;
+            box-shadow: 0 0 12px rgba(74,222,128,0.7); animation: pulse 1.5s infinite;
         }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         /* No-class banner */
         .no-class-banner {
-            margin: 16px 16px 0; padding: 14px 18px; border-radius: 14px;
-            background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #fde68a;
-            display: flex; align-items: center; gap: 12px;
+            margin: 16px 16px 0; padding: 16px 20px; border-radius: 18px;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1px solid rgba(253,224,71,0.4);
+            display: flex; align-items: center; gap: 14px;
+            box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.8);
+            animation: fadeSlideUp 0.5s ease;
         }
-        .no-class-banner i { font-size: 1.4rem; color: #d97706; flex-shrink: 0; }
-        .no-class-banner .ncb-text strong { color: #92400e; font-size: 0.85rem; }
-        .no-class-banner .ncb-text p { color: #a16207; font-size: 0.75rem; margin-top: 2px; }
+        .no-class-banner i { font-size: 1.5rem; color: #d97706; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(217,119,6,0.2)); }
+        .no-class-banner .ncb-text strong { color: #92400e; font-size: 0.88rem; }
+        .no-class-banner .ncb-text p { color: #a16207; font-size: 0.76rem; margin-top: 3px; }
 
         /* ─── Content ─── */
-        .content { padding: 16px 16px calc(80px + var(--safe-bottom)); }
+        .content { padding: 20px 16px calc(90px + var(--safe-bottom)); }
 
-        /* Ring chart */
+        /* ─── Ring Card — 3D Glass ─── */
         .ring-card {
-            background: var(--card); border-radius: 20px; padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; text-align: center;
+            background: var(--card-solid);
+            border-radius: 24px; padding: 28px 24px;
+            margin-bottom: 20px; text-align: center;
+            position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.9);
+            box-shadow: var(--shadow-3d);
+            animation: scaleIn 0.5s ease;
         }
-        .ring-wrap { position: relative; width: 160px; height: 160px; margin: 0 auto 16px; }
+        .ring-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light), #22d3ee, var(--primary-light), var(--primary));
+            background-size: 200% 100%;
+            animation: shimmer 3s ease infinite;
+        }
+        .ring-card::after {
+            content: '';
+            position: absolute; top: 4px; right: -40px; width: 120px; height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .ring-wrap {
+            position: relative; width: 180px; height: 180px; margin: 0 auto 20px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+        }
         .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .ring-wrap .ring-bg { fill: none; stroke: #e2e8f0; stroke-width: 10; }
-        .ring-wrap .ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+        .ring-wrap .ring-bg { fill: none; stroke: #e8ecf4; stroke-width: 11; }
+        .ring-wrap .ring-fill {
+            fill: none; stroke-width: 11; stroke-linecap: round;
+            transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 6px currentColor);
+            animation: ringDraw 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         .ring-center {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             text-align: center;
         }
-        .ring-center .pct { font-size: 2.2rem; font-weight: 900; letter-spacing: -2px; color: var(--text); }
-        .ring-center .pct-label { font-size: 0.65rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ring-center .pct {
+            font-size: 2.6rem; font-weight: 900; letter-spacing: -2px; color: var(--text);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .ring-center .pct-label {
+            font-size: 0.68rem; color: var(--muted); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;
+        }
+        .ring-subtitle {
+            font-size: 0.78rem; color: var(--muted); font-weight: 500;
+        }
 
-        /* Stat pills row */
+        /* ─── Stat Pills — 3D Elevated Cards ─── */
         .stat-pills {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
         }
         .pill {
-            background: var(--card); border-radius: 16px; padding: 18px 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 14px;
+            background: var(--card-solid);
+            border-radius: 20px; padding: 20px 16px;
+            display: flex; align-items: center; gap: 14px;
+            position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.9);
+            box-shadow: var(--shadow-3d);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            animation: fadeSlideUp 0.5s ease backwards;
+        }
+        .pill:nth-child(1) { animation-delay: 0.05s; }
+        .pill:nth-child(2) { animation-delay: 0.1s; }
+        .pill:nth-child(3) { animation-delay: 0.15s; }
+        .pill:nth-child(4) { animation-delay: 0.2s; }
+        .pill:nth-child(5) { animation-delay: 0.25s; }
+        .pill:nth-child(6) { animation-delay: 0.3s; }
+        .pill:active {
+            transform: scale(0.97);
+            box-shadow: var(--shadow-sm);
+        }
+        .pill::after {
+            content: '';
+            position: absolute; top: 0; right: 0; width: 60px; height: 60px;
+            border-radius: 50%;
+            opacity: 0.04; pointer-events: none;
+            transform: translate(20px, -20px);
         }
         .pill-icon {
-            width: 44px; height: 44px; border-radius: 14px; display: flex;
-            align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+            width: 48px; height: 48px; border-radius: 16px; display: flex;
+            align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
         }
         .pill-icon.green { background: var(--green-bg); color: var(--green); }
         .pill-icon.red { background: var(--red-bg); color: var(--red); }
         .pill-icon.amber { background: var(--amber-bg); color: var(--amber); }
         .pill-icon.blue { background: var(--blue-bg); color: var(--blue); }
-        .pill-icon.purple { background: var(--primary-bg); color: var(--primary); }
-        .pill-val { font-size: 1.4rem; font-weight: 900; letter-spacing: -1px; line-height: 1; }
-        .pill-label { font-size: 0.65rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+        .pill-icon.purple { background: var(--purple-bg); color: var(--primary); }
+        .pill-val {
+            font-size: 1.5rem; font-weight: 900; letter-spacing: -1px; line-height: 1;
+            background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .pill-label {
+            font-size: 0.65rem; color: var(--muted); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px;
+        }
 
-        /* School cards */
+        /* ─── School Cards — Elevated 3D ─── */
         .section-title {
-            font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
-            letter-spacing: 0.8px; margin: 20px 0 12px; display: flex; align-items: center; gap: 8px;
+            font-size: 0.78rem; font-weight: 800; color: var(--muted); text-transform: uppercase;
+            letter-spacing: 1px; margin: 24px 0 14px; display: flex; align-items: center; gap: 10px;
         }
-        .section-title i { font-size: 0.75rem; }
+        .section-title i { font-size: 0.72rem; color: var(--primary-light); }
+        .section-title::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(90deg, var(--border), transparent);
+        }
         .school-card {
-            background: var(--card); border-radius: 16px; padding: 18px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 10px;
+            background: var(--card-solid);
+            border-radius: 20px; padding: 20px;
+            margin-bottom: 12px;
+            position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.9);
+            border-left: 4px solid var(--primary-light);
+            box-shadow: var(--shadow-3d);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: fadeSlideUp 0.4s ease backwards;
         }
-        .sc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .sc-name { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+        .school-card:active {
+            transform: scale(0.985);
+            box-shadow: var(--shadow-sm);
+        }
+        .sc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+        .sc-name { font-size: 0.9rem; font-weight: 800; color: var(--text); line-height: 1.25; }
         .sc-code {
-            font-size: 0.62rem; font-weight: 700; background: var(--primary-bg); color: var(--primary);
-            padding: 4px 10px; border-radius: 8px; white-space: nowrap;
+            font-size: 0.62rem; font-weight: 700;
+            background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(129,140,248,0.12));
+            color: var(--primary);
+            padding: 5px 12px; border-radius: 10px; white-space: nowrap;
+            border: 1px solid rgba(79,70,229,0.1);
         }
-        .sc-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
-        .sc-bar .fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-        .sc-stats { display: flex; gap: 16px; }
-        .sc-stat { text-align: center; flex: 1; }
-        .sc-stat .v { font-size: 1rem; font-weight: 800; }
-        .sc-stat .l { font-size: 0.6rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+        .sc-bar {
+            height: 8px; background: #e8ecf4; border-radius: 4px; overflow: hidden; margin-bottom: 14px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .sc-bar .fill {
+            height: 100%; border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            background-image: linear-gradient(90deg, currentColor, currentColor);
+            position: relative;
+        }
+        .sc-stats { display: flex; gap: 0; }
+        .sc-stat {
+            text-align: center; flex: 1;
+            padding: 8px 0; border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .sc-stat .v { font-size: 1.05rem; font-weight: 900; }
+        .sc-stat .l {
+            font-size: 0.6rem; color: var(--muted); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px;
+        }
         .v-green { color: var(--green); }
         .v-red { color: var(--red); }
         .v-blue { color: var(--blue); }
 
         /* School filter dropdown (mobile) */
         .filter-select {
-            width: 100%; background: var(--card); border: 1px solid var(--border);
-            padding: 12px 16px; border-radius: 12px; font-size: 0.82rem; font-family: 'Inter', sans-serif;
-            font-weight: 600; color: var(--text); margin-bottom: 12px; appearance: none;
+            width: 100%;
+            background: var(--card-solid);
+            border: 1px solid var(--border);
+            padding: 14px 18px; border-radius: 16px; font-size: 0.84rem; font-family: 'Inter', sans-serif;
+            font-weight: 600; color: var(--text); margin-bottom: 14px; appearance: none;
+            box-shadow: var(--shadow-md);
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: right 14px center;
+            background-repeat: no-repeat; background-position: right 16px center;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .filter-select:active {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-lg), 0 0 0 3px rgba(79,70,229,0.1);
         }
 
-        /* Bottom nav */
+        /* ─── Bottom Nav — Frosted Glass ─── */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-            background: var(--card); border-top: 1px solid var(--border);
-            padding: 8px 16px calc(8px + var(--safe-bottom));
+            background: rgba(255,255,255,0.82);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-top: 1px solid rgba(226,232,240,0.6);
+            padding: 6px 12px calc(6px + var(--safe-bottom));
             display: flex; justify-content: space-around;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
         }
         .nav-item {
             display: flex; flex-direction: column; align-items: center; gap: 3px;
-            font-size: 0.6rem; font-weight: 600; color: var(--muted); text-decoration: none;
-            padding: 6px 12px; border-radius: 10px; transition: all 0.2s; border: none; background: none; cursor: pointer;
+            font-size: 0.6rem; font-weight: 700; color: var(--muted); text-decoration: none;
+            padding: 8px 14px; border-radius: 14px; transition: all 0.25s ease;
+            border: none; background: none; cursor: pointer;
+            position: relative;
         }
-        .nav-item.active { color: var(--primary); }
-        .nav-item i { font-size: 1.1rem; }
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(79,70,229,0.08);
+        }
+        .nav-item.active::before {
+            content: '';
+            position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+            width: 20px; height: 3px; border-radius: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            box-shadow: 0 1px 6px rgba(79,70,229,0.3);
+        }
+        .nav-item i { font-size: 1.15rem; transition: transform 0.2s; }
+        .nav-item:active i { transform: scale(0.9); }
 
-        /* Pull to refresh indicator */
+        /* Pull to refresh */
         .refresh-indicator {
             text-align: center; padding: 12px; font-size: 0.75rem; color: var(--muted); font-weight: 600; display: none;
         }
         .refresh-indicator.visible { display: block; }
 
-        /* Slide-up panel for school filter */
+        /* ─── Filter Panel — Glass Slide-up ─── */
         .filter-panel {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-            background: var(--card); border-radius: 20px 20px 0 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px 24px 0 0;
             padding: 20px 20px calc(20px + var(--safe-bottom));
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
-            transform: translateY(100%); transition: transform 0.3s ease;
+            box-shadow: 0 -10px 50px rgba(0,0,0,0.12);
+            transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
         }
         .filter-panel.open { transform: translateY(0); }
         .filter-backdrop {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 199;
-            background: rgba(0,0,0,0.3); opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            background: rgba(15,23,42,0.35);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
         .filter-backdrop.open { opacity: 1; pointer-events: auto; }
-        .filter-handle { width: 40px; height: 4px; background: #cbd5e1; border-radius: 2px; margin: 0 auto 16px; }
-        .filter-title { font-size: 0.95rem; font-weight: 800; margin-bottom: 14px; }
+        .filter-handle {
+            width: 40px; height: 4px; border-radius: 2px; margin: 0 auto 18px;
+            background: linear-gradient(90deg, #cbd5e1, #94a3b8, #cbd5e1);
+        }
+        .filter-title { font-size: 1rem; font-weight: 800; margin-bottom: 16px; letter-spacing: -0.02em; }
         .filter-option {
-            padding: 14px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
-            cursor: pointer; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 18px; border-radius: 14px; font-size: 0.86rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;
         }
         .filter-option:hover { background: var(--bg); }
-        .filter-option.selected { background: var(--primary-bg); color: var(--primary); }
+        .filter-option.selected {
+            background: linear-gradient(135deg, rgba(79,70,229,0.06), rgba(129,140,248,0.1));
+            color: var(--primary);
+        }
         .filter-option .check { display: none; }
         .filter-option.selected .check { display: inline; }
         .filter-list { max-height: 50vh; overflow-y: auto; }
@@ -318,19 +542,62 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .notif-dot {
             position: absolute; top: 6px; right: 6px; width: 8px; height: 8px;
             border-radius: 50%; background: #ef4444; display: none;
-            box-shadow: 0 0 6px rgba(239,68,68,0.6);
+            box-shadow: 0 0 8px rgba(239,68,68,0.6);
         }
         .notif-dot.active { display: block; animation: pulse 1.5s infinite; }
+
+        /* Toast — Glassmorphism */
         .notif-toast {
-            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
-            background: #0f172a; color: #fff; padding: 12px 20px; border-radius: 14px;
+            position: fixed; top: -70px; left: 50%; transform: translateX(-50%);
+            background: rgba(15,23,42,0.88);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            color: #fff; padding: 14px 22px; border-radius: 18px;
             font-size: 0.82rem; font-weight: 600; z-index: 300; display: flex;
-            align-items: center; gap: 8px; transition: top 0.35s ease;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            align-items: center; gap: 10px;
+            transition: top 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.06);
         }
         .notif-toast.show { top: calc(20px + var(--safe-top)); }
-        .notif-toast .fa-check-circle { color: #4ade80; }
-        .notif-toast .fa-times-circle { color: #f87171; }
+        .notif-toast .fa-check-circle { color: #4ade80; filter: drop-shadow(0 0 4px rgba(74,222,128,0.5)); }
+        .notif-toast .fa-times-circle { color: #f87171; filter: drop-shadow(0 0 4px rgba(248,113,113,0.5)); }
+
+        /* ─── Check Absence Button — Premium ─── */
+        .absence-btn {
+            width: 100%; padding: 16px; border: none; border-radius: 18px;
+            font-size: 0.88rem; font-weight: 700; font-family: 'Inter', sans-serif;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(220,38,38,0.3), 0 1px 3px rgba(220,38,38,0.2);
+            transition: all 0.25s ease;
+            position: relative; overflow: hidden;
+        }
+        .absence-btn::before {
+            content: '';
+            position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease;
+        }
+        .absence-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(220,38,38,0.2);
+        }
+        .absence-btn:active::before { left: 100%; }
+
+        /* ─── Greeting Section ─── */
+        .greeting {
+            padding: 0 0 4px;
+            animation: fadeSlideUp 0.4s ease;
+        }
+        .greeting-text {
+            font-size: 0.82rem; color: var(--muted); font-weight: 600;
+        }
+        .greeting-name {
+            font-size: 1.25rem; font-weight: 900; letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--text) 0%, var(--primary-dark) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
     </style>
 </head>
 <body>
@@ -380,6 +647,15 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     <!-- MAIN CONTENT -->
     <div class="content">
 
+        <!-- Greeting -->
+        <div class="greeting">
+            <div class="greeting-text"><?php
+                $hour = (int) date('G');
+                echo $hour < 12 ? 'Good Morning' : ($hour < 17 ? 'Good Afternoon' : 'Good Evening');
+            ?> 👋</div>
+            <div class="greeting-name"><?= htmlspecialchars($admin_name) ?></div>
+        </div>
+
         <!-- Attendance Ring -->
         <div class="ring-card">
             <div class="ring-wrap">
@@ -388,7 +664,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                     <?php
                         $circumference = 2 * M_PI * 52;
                         $offset = $circumference - ($attendance_rate / 100) * $circumference;
-                        $ring_color = $attendance_rate >= 80 ? '#16a34a' : ($attendance_rate >= 50 ? '#d97706' : '#dc2626');
+                        $ring_color = $attendance_rate >= 80 ? '#059669' : ($attendance_rate >= 50 ? '#d97706' : '#dc2626');
                     ?>
                     <circle class="ring-fill" cx="60" cy="60" r="52"
                         stroke="<?= $ring_color ?>"
@@ -400,8 +676,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                     <div class="pct-label">Student Attendance</div>
                 </div>
             </div>
-            <div style="font-size:0.75rem;color:var(--muted);font-weight:500;">
-                <?= $timed_in_today ?> of <?= $relevant_students ?> students present<?php if ($filter_school && $schools_list): ?> (filtered)<?php endif; ?>
+            <div class="ring-subtitle">
+                <strong><?= $timed_in_today ?></strong> of <strong><?= $relevant_students ?></strong> students present<?php if ($filter_school && $schools_list): ?> · <em>filtered</em><?php endif; ?>
             </div>
         </div>
 
@@ -487,12 +763,12 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         <span id="notifToastMsg">Notifications enabled</span>
     </div>
 
-    <!-- CHECK ABSENCES BUTTON (for admins) -->
+    <!-- CHECK ABSENCES BUTTON -->
     <div class="content" style="padding:0 16px 8px;">
-        <button onclick="checkAbsences()" id="checkAbsBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;border-radius:14px;font-size:0.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(220,38,38,0.25);">
-            <i class="fas fa-bell"></i> Check & Send Absence Alerts Now
+        <button onclick="checkAbsences()" id="checkAbsBtn" class="absence-btn">
+            <i class="fas fa-bell"></i> Check & Send Absence Alerts
         </button>
-        <div id="checkResult" style="margin-top:8px;font-size:0.78rem;color:var(--muted);text-align:center;"></div>
+        <div id="checkResult" style="margin-top:10px;font-size:0.78rem;color:var(--muted);text-align:center;font-weight:500;"></div>
     </div>
 
     <!-- BOTTOM NAV -->
@@ -554,7 +830,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         }
 
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-bell"></i> Check & Send Absence Alerts Now';
+        btn.innerHTML = '<i class="fas fa-bell"></i> Check & Send Absence Alerts';
     }
 
     // ══════════════════════════════════════════════════════════════
