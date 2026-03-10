@@ -9,21 +9,20 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install mysqli pdo pdo_mysql gd zip mbstring
 
-# Enable Apache modules (ensure only prefork MPM for mod_php)
-RUN a2dismod mpm_event || true \
-    && a2enmod mpm_prefork rewrite headers expires deflate
-
-# Set document root to /var/www/html
-ENV APACHE_DOCUMENT_ROOT=/var/www/html
+# Enable Apache modules
+RUN a2enmod rewrite headers expires deflate
 
 # Allow .htaccess overrides
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-# Set PHP timezone
-RUN echo "date.timezone = Asia/Manila" > /usr/local/etc/php/conf.d/timezone.ini
-
-# Increase upload limits for bulk import
-RUN echo "upload_max_filesize = 50M\npost_max_size = 50M\nmax_execution_time = 300\nmemory_limit = 256M" > /usr/local/etc/php/conf.d/uploads.ini
+# Set PHP settings
+RUN echo "date.timezone = Asia/Manila" > /usr/local/etc/php/conf.d/custom.ini \
+    && echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "display_errors = On" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/custom.ini
 
 # Copy app files
 COPY . /var/www/html/
@@ -33,7 +32,15 @@ RUN mkdir -p /var/www/html/assets/uploads/logos \
     && chown -R www-data:www-data /var/www/html/assets/uploads \
     && chown -R www-data:www-data /var/www/html/config
 
-# Configure Apache to use Railway's PORT at runtime (default 80)
-CMD sed -i "s/Listen 80/Listen ${PORT:-80}/g" /etc/apache2/ports.conf \
-    && sed -i "s/:80/:${PORT:-80}/g" /etc/apache2/sites-available/000-default.conf \
-    && apache2-foreground
+# Create entrypoint script for dynamic PORT
+RUN echo '#!/bin/bash\n\
+PORT="${PORT:-80}"\n\
+sed -i "s/Listen 80/Listen $PORT/" /etc/apache2/ports.conf\n\
+sed -i "s/<VirtualHost \\*:80>/<VirtualHost *:$PORT>/" /etc/apache2/sites-available/000-default.conf\n\
+echo "ServerName localhost" >> /etc/apache2/apache2.conf\n\
+exec apache2-foreground' > /usr/local/bin/start.sh \
+    && chmod +x /usr/local/bin/start.sh
+
+EXPOSE 80
+
+CMD ["/usr/local/bin/start.sh"]
