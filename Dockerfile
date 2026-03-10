@@ -15,9 +15,6 @@ RUN a2enmod rewrite headers expires deflate
 # Set document root to /var/www/html
 ENV APACHE_DOCUMENT_ROOT=/var/www/html
 
-# Configure Apache to listen on Railway's PORT
-RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
-
 # Allow .htaccess overrides
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
@@ -35,6 +32,7 @@ RUN mkdir -p /var/www/html/assets/uploads/logos \
     && chown -R www-data:www-data /var/www/html/assets/uploads \
     && chown -R www-data:www-data /var/www/html/config
 
-EXPOSE ${PORT}
-
-CMD ["apache2-foreground"]
+# Configure Apache to use Railway's PORT at runtime (default 80)
+CMD sed -i "s/Listen 80/Listen ${PORT:-80}/g" /etc/apache2/ports.conf \
+    && sed -i "s/:80/:${PORT:-80}/g" /etc/apache2/sites-available/000-default.conf \
+    && apache2-foreground
