@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qr-dashboard-v2';
+const CACHE_NAME = 'qr-dashboard-v3';
 const ASSETS_TO_CACHE = [
     'app_dashboard.php',
     'app_login.php',

@@ -515,9 +515,17 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     // ══════════════════════════════════════════════════════════════
     let swRegistration = null;
     let isSubscribed = false;
-    const isNativeApp = navigator.userAgent.includes('QRAttendanceApp');
+    const isNativeApp = navigator.userAgent.includes('QRAttendanceApp') || navigator.userAgent.includes('wv');
 
-    if ('serviceWorker' in navigator) {
+    // Debug: log user agent to help troubleshoot
+    console.log('User Agent:', navigator.userAgent);
+    console.log('isNativeApp:', isNativeApp);
+
+    if (isNativeApp) {
+        // Native app handles notifications via WorkManager — skip service worker push
+        updateBellUI(true);
+        isSubscribed = true;
+    } else if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(reg => {
             swRegistration = reg;
             checkSubscription();
