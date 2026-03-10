@@ -512,15 +512,25 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     // ══════════════════════════════════════════════════════════════
     let swRegistration = null;
     let isSubscribed = false;
+    const isNativeApp = navigator.userAgent.includes('QRAttendanceApp');
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(reg => {
             swRegistration = reg;
             checkSubscription();
         }).catch(() => {});
+    } else if (isNativeApp) {
+        // Native app handles notifications via WorkManager
+        updateBellUI(true);
     }
 
     async function checkSubscription() {
+        if (isNativeApp) {
+            // Native app uses built-in background notifications
+            isSubscribed = true;
+            updateBellUI(true);
+            return;
+        }
         if (!swRegistration || !('PushManager' in window)) {
             updateBellUI(false);
             return;
@@ -546,6 +556,10 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     }
 
     async function toggleNotifications() {
+        if (isNativeApp) {
+            showToast('Notifications are managed by the app automatically.', true);
+            return;
+        }
         if (!swRegistration) {
             showToast('Service worker not ready. Reload the page.', false);
             return;

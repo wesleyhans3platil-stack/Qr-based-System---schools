@@ -38,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_school_id'] = $admin['school_id'];
 
                 $conn->query("UPDATE admins SET last_login = NOW() WHERE id = " . $admin['id']);
+
+                // Android app: return JSON with name so it can show a welcome notification
+                $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                if (stripos($ua, 'QRAttendanceApp') !== false) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'full_name' => $admin['full_name']]);
+                    exit;
+                }
+
                 header('Location: app_dashboard.php');
                 exit;
             } else {
