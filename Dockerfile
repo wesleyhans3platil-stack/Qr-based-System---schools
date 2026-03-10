@@ -9,8 +9,9 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install mysqli pdo pdo_mysql gd zip mbstring
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite headers expires deflate
+# Enable Apache modules (ensure only prefork MPM for mod_php)
+RUN a2dismod mpm_event || true \
+    && a2enmod mpm_prefork rewrite headers expires deflate
 
 # Set document root to /var/www/html
 ENV APACHE_DOCUMENT_ROOT=/var/www/html
