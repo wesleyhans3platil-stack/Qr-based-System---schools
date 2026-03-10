@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -9,13 +9,6 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install mysqli pdo pdo_mysql gd zip mbstring
 
-# Disable conflicting MPMs, keep only prefork (required for mod_php)
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true
-RUN a2enmod mpm_prefork rewrite headers expires deflate
-
-# Allow .htaccess overrides
-RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
-
 # PHP settings
 RUN { \
     echo "date.timezone = Asia/Manila"; \
@@ -23,20 +16,17 @@ RUN { \
     echo "post_max_size = 50M"; \
     echo "max_execution_time = 300"; \
     echo "memory_limit = 256M"; \
-    echo "display_errors = On"; \
-    echo "error_reporting = E_ALL"; \
     } > /usr/local/etc/php/conf.d/custom.ini
 
-# Copy app files
-COPY . /var/www/html/
+WORKDIR /var/www/html
 
-# Make entrypoint executable and fix line endings
-RUN chmod +x /var/www/html/docker-entrypoint.sh \
-    && sed -i 's/\r$//' /var/www/html/docker-entrypoint.sh
+# Copy app files
+COPY . .
 
 # Ensure uploads and config directories are writable
-RUN mkdir -p /var/www/html/assets/uploads/logos \
-    && chown -R www-data:www-data /var/www/html/assets/uploads \
-    && chown -R www-data:www-data /var/www/html/config
+RUN mkdir -p assets/uploads/logos \
+    && chmod -R 777 assets/uploads config
 
-CMD ["/var/www/html/docker-entrypoint.sh"]
+EXPOSE ${PORT:-8080}
+
+CMD php -S 0.0.0.0:${PORT:-8080} router.php
