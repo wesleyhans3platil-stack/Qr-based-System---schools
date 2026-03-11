@@ -26,31 +26,29 @@ if ($admin_role === 'principal' && $admin_school_id) { $where[] = "(a.school_id 
 
 if ($filter_type === 'student') {
     if ($filter_grade) { $where[] = "s.grade_level_id = ?"; $params[] = $filter_grade; $types .= 'i'; }
-    if ($search) { $where[] = "(s.name LIKE ? OR s.lrn LIKE ? OR u.name LIKE ?)"; $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%"; $types .= 'sss'; }
+    if ($search) { $where[] = "(s.name LIKE ? OR s.lrn LIKE ?)"; $params[] = "%$search%"; $params[] = "%$search%"; $types .= 'ss'; }
 
     $sql = "SELECT a.*,
-                   COALESCE(s.name, u.name) as person_name,
+                   s.name as person_name,
                    COALESCE(s.lrn, '') as lrn,
                    sch.name as school_name, sch.code as school_code,
                    gl.name as grade_name, sec.name as section_name
             FROM attendance a
             LEFT JOIN students s ON a.person_id = s.id
-            LEFT JOIN users u ON a.person_id = u.id
             LEFT JOIN schools sch ON COALESCE(NULLIF(a.school_id, 0), s.school_id) = sch.id
             LEFT JOIN grade_levels gl ON s.grade_level_id = gl.id
             LEFT JOIN sections sec ON s.section_id = sec.id
             WHERE " . implode(' AND ', $where) . "
             ORDER BY a.time_in DESC";
 } else {
-    if ($search) { $where[] = "(t.name LIKE ? OR t.employee_id LIKE ? OR u.name LIKE ?)"; $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%"; $types .= 'sss'; }
+    if ($search) { $where[] = "(t.name LIKE ? OR t.employee_id LIKE ?)"; $params[] = "%$search%"; $params[] = "%$search%"; $types .= 'ss'; }
 
     $sql = "SELECT a.*,
-                   COALESCE(t.name, u.name) as person_name,
+                   t.name as person_name,
                    COALESCE(t.employee_id, '') as employee_id,
                    sch.name as school_name, sch.code as school_code
             FROM attendance a
             LEFT JOIN teachers t ON a.person_id = t.id
-            LEFT JOIN users u ON a.person_id = u.id
             LEFT JOIN schools sch ON COALESCE(NULLIF(a.school_id, 0), t.school_id) = sch.id
             WHERE " . implode(' AND ', $where) . "
             ORDER BY a.time_in DESC";
