@@ -95,18 +95,8 @@ if (!isSchoolDay($today, $conn)) {
     ob_end_flush(); exit;
 }
 
-$is_time_in_window  = ($current_time >= $time_in_start && $current_time <= $time_in_end);
+$is_time_in_window  = ($current_time <= $time_in_end);
 $is_time_out_window = ($current_time >= $time_out_start && $current_time <= $time_out_end);
-
-if ($current_time < $time_in_start) {
-    // Before time_in_start — too early
-    echo json_encode([
-        'success' => false,
-        'error' => 'Scanning not available yet. Time In starts at ' . date('h:i A', strtotime($time_in_start)) . '.',
-        'person' => buildPersonResponse($person, $person_type)
-    ]);
-    ob_end_flush(); exit;
-}
 
 if (!$is_time_in_window && !$is_time_out_window) {
     if ($current_time > $time_in_end && $current_time < $time_out_start) {
