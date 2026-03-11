@@ -245,8 +245,8 @@ for ($count = 0; $count < 7; $count++) {
                         <?php if (empty($section_data)): ?>
                         <tr><td colspan="7" class="text-muted" style="text-align:center; padding:30px;">No sections found</td></tr>
                         <?php else: foreach ($section_data as $sec):
-                            $sec_absent = $sec['total'] - $sec['present'];
-                            $sec_rate = $sec['total'] > 0 ? round(($sec['present'] / $sec['total']) * 100, 1) : 0;
+                            $sec_absent = max(0, $sec['total'] - $sec['present']);
+                            $sec_rate = $sec['total'] > 0 ? min(100, round(($sec['present'] / $sec['total']) * 100, 1)) : 0;
                         ?>
                         <tr>
                             <td><strong><?= htmlspecialchars($sec['grade_name']) ?></strong></td>
@@ -258,7 +258,8 @@ for ($count = 0; $count < 7; $count++) {
                             <td>
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <div class="progress-bar" style="width:80px;">
-                                        <div class="progress-bar-fill <?= $sec_rate >= 90 ? 'high' : ($sec_rate >= 75 ? 'medium' : 'low') ?>" style="width:<?= $sec_rate ?>%;"></div>
+                                        <div class="progress-bar-fill present" style="width:<?= $sec_rate ?>%;"></div>
+                                        <div class="progress-bar-fill absent" style="width:<?= 100 - $sec_rate ?>%;"></div>
                                     </div>
                                     <span class="fw-600" style="font-size:0.8rem;"><?= $sec_rate ?>%</span>
                                 </div>

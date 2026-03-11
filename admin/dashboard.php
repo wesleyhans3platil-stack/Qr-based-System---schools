@@ -120,8 +120,8 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         .school-stats .ss { text-align: center; }
         .school-stats .ss .val { font-size: 1.1rem; font-weight: 800; }
         .school-stats .ss .lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
-        .progress-bar { width: 120px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-        .progress-bar .fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .progress-bar { width: 120px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: flex; }
+        .progress-bar .fill { height: 100%; transition: width 0.5s ease; }
         .flag-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
         .flag-item:last-child { border-bottom: none; }
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .dashboard-grid .card.full { grid-column: span 1; } }
@@ -207,8 +207,8 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                                 <td><span class="text-primary"><?= $sb['teachers_present'] ?></span>/<?= $sb['total_teachers'] ?></td>
                                 <td>
                                     <div class="progress-bar">
-                                        <div class="fill" style="width:<?= $sb['rate'] ?>%; background:<?= $sb['rate'] >= 80 ? 'var(--success)' : ($sb['rate'] >= 50 ? 'var(--warning)' : 'var(--error)') ?>;"></div>
-                                    </div>
+                                        <div class="fill" style="width:<?= $sb['rate'] ?>%; background:var(--success); border-radius:3px 0 0 3px;"></div>
+                                        <div class="fill" style="width:<?= 100 - $sb['rate'] ?>%; background:var(--error); border-radius:0 3px 3px 0;"></div>
                                 </td>
                             </tr>
                             <?php endforeach; endif; ?>

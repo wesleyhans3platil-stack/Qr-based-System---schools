@@ -942,12 +942,11 @@ select.form-control {
 .attendance-pct {
     font-size: 1.1rem;
     font-weight: 800;
-    color: var(--success) !important;
 }
 
 .attendance-pct.high { color: var(--success) !important; }
-.attendance-pct.medium { color: var(--success) !important; }
-.attendance-pct.low { color: var(--success) !important; }
+.attendance-pct.medium { color: #d97706 !important; }
+.attendance-pct.low { color: var(--error) !important; }
 
 .progress-bar {
     width: 100%;
@@ -956,17 +955,20 @@ select.form-control {
     border-radius: 3px;
     overflow: hidden;
     margin-top: 8px;
+    display: flex;
 }
 
 .progress-bar-fill {
     height: 100%;
-    border-radius: 3px;
     transition: width 0.5s ease;
 }
 
-.progress-bar-fill.high { background: var(--success); }
-.progress-bar-fill.medium { background: var(--success); }
-.progress-bar-fill.low { background: var(--success); }
+.progress-bar-fill.present { background: var(--success); border-radius: 3px 0 0 3px; }
+.progress-bar-fill.absent { background: var(--error); border-radius: 0 3px 3px 0; }
+
+.progress-bar-fill.high { background: var(--success); border-radius: 3px; }
+.progress-bar-fill.medium { background: #d97706; border-radius: 3px; }
+.progress-bar-fill.low { background: var(--error); border-radius: 3px; }
 
 /* ─── Chart Container ─── */
 .chart-container {

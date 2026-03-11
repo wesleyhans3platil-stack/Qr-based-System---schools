@@ -76,7 +76,7 @@ if ($r) while ($row = $r->fetch_assoc()) $present_teachers_list[] = $row;
 // Per-school data
 $schools_data = [];
 $sql = "SELECT s.id, s.name, s.code, s.logo,
-        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active') as total_students,
+        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND (DATE(st.created_at) < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as total_students,
         (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers,
         (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
         (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present
@@ -116,8 +116,8 @@ if ($r) while ($row = $r->fetch_assoc()) $all_absent_2day[] = $row;
 // Schools sorted by attendance rate (highest first) for ranking
 $schools_ranked = $schools_data;
 usort($schools_ranked, function($a, $b) {
-    $pct_a = $a['total_students'] > 0 ? min(100, ($a['present'] / $a['total_students']) * 100) : 100;
-    $pct_b = $b['total_students'] > 0 ? min(100, ($b['present'] / $b['total_students']) * 100) : 100;
+    $pct_a = $a['total_students'] > 0 ? min(100, ($a['present'] / $a['total_students']) * 100) : 0;
+    $pct_b = $b['total_students'] > 0 ? min(100, ($b['present'] / $b['total_students']) * 100) : 0;
     return $pct_b <=> $pct_a; // descending = best attendance first
 });
 
@@ -268,8 +268,8 @@ if ($view_school) {
                     <thead><tr><th>Grade</th><th>Section</th><th>Total</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th></tr></thead>
                     <tbody>
                     <?php foreach ($drill_sections as $sec):
-                        $sa = $sec['total'] - $sec['present'];
-                        $sr = $sec['total'] > 0 ? round(($sec['present']/$sec['total'])*100,1) : 0;
+                        $sa = max(0, $sec['total'] - $sec['present']);
+                        $sr = $sec['total'] > 0 ? min(100, round(($sec['present']/$sec['total'])*100,1)) : 0;
                     ?>
                     <tr>
                         <td><strong><?= htmlspecialchars($sec['grade_name']) ?></strong></td>
@@ -280,7 +280,7 @@ if ($view_school) {
                         <td class="text-warning fw-600"><?= $sec['late_count'] ?></td>
                         <td>
                             <div style="display:flex;align-items:center;gap:8px;">
-                                <div class="progress-bar" style="width:80px;"><div class="progress-bar-fill <?= $sr >= 90 ? 'high' : ($sr >= 75 ? 'medium' : 'low') ?>" style="width:<?= $sr ?>%;"></div></div>
+                                <div class="progress-bar" style="width:80px;"><div class="progress-bar-fill present" style="width:<?= $sr ?>%;"></div><div class="progress-bar-fill absent" style="width:<?= 100 - $sr ?>%;"></div></div>
                                 <span class="fw-600" style="font-size:0.8rem;"><?= $sr ?>%</span>
                             </div>
                         </td>
@@ -364,7 +364,8 @@ if ($view_school) {
                 <div class="card-title"><i class="fas fa-ranking-star" style="color:var(--success);"></i> Schools by Attendance Rate</div>
                 <div style="max-height:300px; overflow-y:auto;">
                     <?php foreach (array_slice($schools_ranked, 0, 10) as $i => $sr):
-                        $sr_pct = $sr['total_students'] > 0 ? round(($sr['present'] / $sr['total_students']) * 100, 1) : 100;
+                        $sr_pct = $sr['total_students'] > 0 ? min(100, round(($sr['present'] / $sr['total_students']) * 100, 1)) : 0;
+                        $sr_class = $sr_pct >= 90 ? 'high' : ($sr_pct >= 75 ? 'medium' : 'low');
                     ?>
                     <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid var(--border);">
                         <span style="width:28px; height:28px; border-radius:8px; background:<?= $i < 3 ? 'var(--success-bg)' : 'var(--card-bg-alt)' ?>; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; color:<?= $i < 3 ? 'var(--success)' : 'var(--text-muted)' ?>;"><?= $i + 1 ?></span>
@@ -372,7 +373,7 @@ if ($view_school) {
                             <div style="font-size:0.85rem; font-weight:600;"><?= htmlspecialchars($sr['name']) ?></div>
                             <div style="font-size:0.72rem; color:var(--text-muted);"><?= $sr['present'] ?> present of <?= $sr['total_students'] ?></div>
                         </div>
-                        <span class="attendance-pct" style="font-size:0.85rem; font-weight:800;"><?= $sr_pct ?>%</span>
+                        <span class="attendance-pct <?= $sr_class ?>" style="font-size:0.85rem; font-weight:800;"><?= $sr_pct ?>%</span>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -386,7 +387,7 @@ if ($view_school) {
         </div>
         <div class="school-cards-grid">
             <?php foreach ($schools_data as $s):
-                $s_absent = $s['total_students'] - $s['present'];
+                $s_absent = max(0, $s['total_students'] - $s['present']);
                 $s_pct = $s['total_students'] > 0 ? round(($s['present'] / $s['total_students']) * 100, 1) : 0;
                 $pct_class = $s_pct >= 90 ? 'high' : ($s_pct >= 75 ? 'medium' : 'low');
             ?>
@@ -410,7 +411,7 @@ if ($view_school) {
                         <span class="attendance-pct <?= $pct_class ?>"><?= $s_pct ?>%</span>
                         <span class="btn btn-sm btn-outline"><i class="fas fa-arrow-right"></i></span>
                     </div>
-                    <div class="progress-bar"><div class="progress-bar-fill <?= $pct_class ?>" style="width:<?= $s_pct ?>%;"></div></div>
+                    <div class="progress-bar"><div class="progress-bar-fill present" style="width:<?= $s_pct ?>%;"></div><div class="progress-bar-fill absent" style="width:<?= 100 - $s_pct ?>%;"></div></div>
                 </div>
             </a>
             <?php endforeach; ?>
