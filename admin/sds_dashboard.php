@@ -374,7 +374,7 @@ if ($view_school) {
                 <div style="max-height:300px; overflow-y:auto;">
                     <?php foreach (array_slice($schools_ranked, 0, 10) as $i => $sr):
                         $sr_pct = $sr['total_students'] > 0 ? min(100, round(($sr['present'] / $sr['total_students']) * 100, 1)) : 0;
-                        $sr_class = $sr_pct >= 90 ? 'high' : ($sr_pct >= 75 ? 'medium' : 'low');
+                        $sr_color = $sr_pct >= 90 ? '#16a34a' : ($sr_pct >= 75 ? '#d97706' : '#dc2626');
                     ?>
                     <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid var(--border);">
                         <span style="width:28px; height:28px; border-radius:8px; background:<?= $i < 3 ? 'var(--success-bg)' : 'var(--card-bg-alt)' ?>; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; color:<?= $i < 3 ? 'var(--success)' : 'var(--text-muted)' ?>;"><?= $i + 1 ?></span>
@@ -382,7 +382,7 @@ if ($view_school) {
                             <div style="font-size:0.85rem; font-weight:600;"><?= htmlspecialchars($sr['name']) ?></div>
                             <div style="font-size:0.72rem; color:var(--text-muted);"><?= $sr['present'] ?> present of <?= $sr['total_students'] ?></div>
                         </div>
-                        <span class="attendance-pct <?= $sr_class ?>" style="font-size:0.85rem; font-weight:800;"><?= $sr_pct ?>%</span>
+                        <span style="font-size:0.85rem; font-weight:800; color:<?= $sr_color ?>;"><?= $sr_pct ?>%</span>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -398,7 +398,7 @@ if ($view_school) {
             <?php foreach ($schools_data as $s):
                 $s_absent = max(0, $s['total_students'] - $s['present']);
                 $s_pct = $s['total_students'] > 0 ? round(($s['present'] / $s['total_students']) * 100, 1) : 0;
-                $pct_class = $s_pct >= 90 ? 'high' : ($s_pct >= 75 ? 'medium' : 'low');
+                $pct_color = $s_pct >= 90 ? '#16a34a' : ($s_pct >= 75 ? '#d97706' : '#dc2626');
             ?>
             <a href="sds_dashboard.php?school=<?= $s['id'] ?>&date=<?= $filter_date ?>" style="text-decoration:none; color:inherit;">
                 <div class="school-card">
@@ -417,7 +417,7 @@ if ($view_school) {
                         <div class="school-card-stat"><div class="stat-value"><?= $s['teachers_present'] ?>/<?= $s['total_teachers'] ?></div><div class="stat-label">Teachers</div></div>
                     </div>
                     <div class="school-card-footer">
-                        <span class="attendance-pct <?= $pct_class ?>"><?= $s_pct ?>%</span>
+                        <span style="font-size:1.1rem; font-weight:800; color:<?= $pct_color ?>;"><?= $s_pct ?>%</span>
                         <span class="btn btn-sm btn-outline"><i class="fas fa-arrow-right"></i></span>
                     </div>
                     <div class="progress-bar"><div class="progress-bar-fill present" style="width:<?= $s_pct ?>%;"></div><div class="progress-bar-fill absent" style="width:<?= 100 - $s_pct ?>%;"></div></div>

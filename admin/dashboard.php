@@ -203,7 +203,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                                 <td><?= $sb['enrolled'] ?></td>
                                 <td><span class="text-success fw-700"><?= $sb['present'] ?></span></td>
                                 <td><span class="text-error fw-700"><?= $sb['absent'] ?></span></td>
-                                <td><span class="fw-700"><?= $sb['rate'] ?>%</span></td>
+                                <td><span class="fw-700" style="color:<?= $sb['rate'] >= 90 ? '#16a34a' : ($sb['rate'] >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $sb['rate'] ?>%</span></td>
                                 <td><span class="text-primary"><?= $sb['teachers_present'] ?></span>/<?= $sb['total_teachers'] ?></td>
                                 <td>
                                     <div class="progress-bar">

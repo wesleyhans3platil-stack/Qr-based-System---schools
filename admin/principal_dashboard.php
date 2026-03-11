@@ -264,7 +264,7 @@ for ($count = 0; $count < 7; $count++) {
                                         <div class="progress-bar-fill present" style="width:<?= $sec_rate ?>%;"></div>
                                         <div class="progress-bar-fill absent" style="width:<?= 100 - $sec_rate ?>%;"></div>
                                     </div>
-                                    <span class="fw-600" style="font-size:0.8rem;"><?= $sec_rate ?>%</span>
+                                    <span class="fw-600" style="font-size:0.8rem; color:<?= $sec_rate >= 90 ? '#16a34a' : ($sec_rate >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $sec_rate ?>%</span>
                                 </div>
                             </td>
                         </tr>
