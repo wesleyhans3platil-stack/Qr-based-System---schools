@@ -140,6 +140,23 @@ if ($existing) {
         }
     }
 
+    // ── Minimum 5-minute gap between Time In and Time Out ──
+    // Prevents accidental double-scan from completing attendance instantly
+    if (!empty($existing['time_in']) && empty($existing['time_out'])) {
+        $time_in_ts = strtotime($today . ' ' . $existing['time_in']);
+        $now_ts = time();
+        $minutes_since_in = ($now_ts - $time_in_ts) / 60;
+        if ($minutes_since_in < 5) {
+            $wait_min = ceil(5 - $minutes_since_in);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Time In recorded at ' . date('h:i A', strtotime($existing['time_in'])) . '. Please wait ' . $wait_min . ' minute' . ($wait_min !== 1 ? 's' : '') . ' before scanning Time Out.',
+                'person' => buildPersonResponse($person, $person_type)
+            ]);
+            ob_end_flush(); exit;
+        }
+    }
+
     // ── Block duplicate Time In (already scanned in this morning) ──
     if ($is_morning_time_in && !empty($existing['time_in'])) {
         echo json_encode([
