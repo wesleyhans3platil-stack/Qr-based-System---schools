@@ -58,15 +58,19 @@ $conn->select_db(DB_NAME);
 $conn->set_charset("utf8mb4");
 
 // ══════════════════════════════════════════════════════════════════
-// SCHEMA INITIALIZATION — only runs when lock file is missing
-// This prevents 22+ DDL queries from running on every single request
-// from all 800 scanner laptops (saves ~17,600 queries per page refresh)
+// SCHEMA INITIALIZATION — runs once per deploy, tracked in DB
+// Uses a DB-based flag instead of filesystem lock file because
+// Railway containers are ephemeral (filesystem resets on every deploy).
+// The DB persists across deploys, so this flag survives.
 // ══════════════════════════════════════════════════════════════════
-$lockFile = __DIR__ . '/.db_initialized';
-if (!file_exists($lockFile)) {
+$needsInit = true;
+$tableCheck = $conn->query("SHOW TABLES LIKE 'system_settings'");
+if ($tableCheck && $tableCheck->num_rows > 0) {
+    // Tables exist — schema was already initialized, DB data persists
+    $needsInit = false;
+}
+if ($needsInit) {
     initializeSchema($conn);
-    // Create lock file so DDL won't run again
-    @file_put_contents($lockFile, date('Y-m-d H:i:s') . ' - Schema initialized');
 }
 
 // Store connection globally
@@ -363,6 +367,66 @@ function initializeSchema($conn) {
         $defaultPassword = password_hash('admin123', PASSWORD_DEFAULT);
         $conn->query("INSERT INTO admins (username, password, full_name, email, role) VALUES
             ('admin', '$defaultPassword', 'System Administrator', 'admin@sipalay.edu.ph', 'super_admin')");
+    }
+
+    // ─── Seed Sipalay City Schools if empty ───
+    $school_check = $conn->query("SELECT COUNT(*) as cnt FROM schools");
+    if ($school_check && $school_check->fetch_assoc()['cnt'] == 0) {
+        $schools = [
+            'Agripino Alvarez Elementary School',
+            'Banag Elementary School',
+            'Barangay V Elementary School',
+            'Barasbarasan Elementary School',
+            'Bawog Elementary School',
+            'Binotusan Elementary School',
+            'Binulig Elementary School',
+            'Bungabunga Elementary School',
+            'Cabadiangan Elementary School',
+            'Calangcang Elementary School',
+            'Calat-an Elementary School',
+            'Cambogui-ot Elementary School',
+            'Camindangan Elementary School',
+            'Cansauro Elementary School',
+            'Cantaca Elementary School',
+            'Canturay Elementary School',
+            'Cartagena Elementary School',
+            'Cayhagan Elementary School',
+            'Crossing Tanduay Elementary School',
+            'Genaro P. Alvarez Elementary School',
+            'Genaro P. Alvarez Elementary School II',
+            'Gil M. Montilla Elementary School',
+            'Hda. Maricalum Elementary School',
+            'Manlucahoc Elementary School',
+            'Maricalum Elementary School',
+            'Nabulao Elementary School',
+            'Nauhang Primary School',
+            'Patag Magbanua Elementary School',
+            'Dungga Integrated School',
+            'Dung-i Integrated School',
+            'Macarandan Integrated School',
+            'Mauboy Integrated School',
+            'Omas Integrated School',
+            'Tugas Integrated School',
+            'Vista Alegre Integrated School',
+            'Cambogui-ot National High School',
+            'Camindangan National High School',
+            'Cayhagan National High School',
+            'Gil Montilla National High School',
+            'Jacinto Montilla Memorial National High School',
+            'Leodegario Ponce Gonzales National High School',
+            'Mariano Gemora National High School',
+            'Maricalum Farm School',
+            'Nabulao National High School',
+            'Sipalay City National High School',
+        ];
+        $stmt = $conn->prepare("INSERT INTO schools (name, code, status) VALUES (?, ?, 'active')");
+        $num = 1;
+        foreach ($schools as $name) {
+            $code = 'SCH-' . str_pad($num, 3, '0', STR_PAD_LEFT);
+            $stmt->bind_param("ss", $name, $code);
+            $stmt->execute();
+            $num++;
+        }
     }
 }
 ?>
