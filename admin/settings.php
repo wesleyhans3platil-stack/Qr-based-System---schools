@@ -288,49 +288,9 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <div class="form-group"><label>ASDS Name</label><input type="text" name="asds_name" class="form-control" value="<?= htmlspecialchars($sys['asds_name'] ?? '') ?>" placeholder="Full name of ASDS"></div>
                         <div class="form-group"><label>ASDS Mobile</label><input type="text" name="asds_mobile" class="form-control" value="<?= htmlspecialchars($sys['asds_mobile'] ?? '') ?>" placeholder="09171234567"></div>
                     </div>
-                    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-                    <div class="form-group">
-                        <label>Semaphore SMS API Key</label>
-                        <input type="text" name="sms_api_key" class="form-control" value="<?= htmlspecialchars($sys['sms_api_key'] ?? '') ?>" placeholder="Enter your Semaphore API key">
-                    </div>
-                    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-                    <div class="form-group">
-                        <label>SMS Notification Numbers</label>
-                        <textarea name="notification_numbers" class="form-control" rows="3" placeholder="Enter phone numbers (one per line or comma-separated)&#10;e.g. 09171234567, 09181234567" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($sys['notification_numbers'] ?? '') ?></textarea>
-                        <small style="color:var(--text-muted);font-size:0.75rem;">These numbers will receive SMS when students/teachers are absent for 2 consecutive days. SDS & ASDS numbers above are automatically included.</small>
-                    </div>
-                    <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-                        <label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                            <input type="checkbox" name="sms_enabled" value="1" <?= ($sys['sms_enabled'] ?? '0') === '1' ? 'checked' : '' ?> style="width:18px;height:18px;">
-                            Enable SMS Notifications
-                        </label>
-                    </div>
-                    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-                    <div style="margin-bottom:12px;">
-                        <strong style="font-size:0.9rem;"><i class="fab fa-google" style="color:#4285F4;margin-right:6px;"></i> Google Sign-In</strong>
-                        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Allow admins to sign in using their DepEd Google accounts. Get your Client ID from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--primary);">Google Cloud Console</a>.</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Google Client ID</label>
-                        <input type="text" name="google_client_id" class="form-control" value="<?= htmlspecialchars($sys['google_client_id'] ?? '') ?>" placeholder="e.g. 123456789-abc.apps.googleusercontent.com" style="font-family:monospace;font-size:0.82rem;">
-                    </div>
                     <button type="submit" name="update_system" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save System Settings</button>
                 </form>
             </div>
-        </div>
-
-        <!-- SMS Absence Check -->
-        <div class="card" style="margin-top:24px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <div>
-                    <div class="card-title" style="margin-bottom:4px;"><i class="fas fa-bell"></i> 2-Day Absence SMS Notification</div>
-                    <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">Check for students and teachers absent for 2 consecutive days and send SMS notifications to configured numbers.</p>
-                </div>
-                <button class="btn btn-primary" onclick="checkAbsenceSMS()" id="smsCheckBtn">
-                    <i class="fas fa-paper-plane"></i> Check & Send SMS
-                </button>
-            </div>
-            <div id="smsResult" style="display:none;"></div>
         </div>
 
         <!-- Admin Accounts -->
