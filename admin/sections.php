@@ -53,6 +53,18 @@ if (isset($_POST['delete_section'])) {
     $success = 'Section deleted.';
 }
 
+// Handle Bulk Delete
+if (isset($_POST['bulk_delete_sections']) && !empty($_POST['section_ids'])) {
+    $ids = array_map('intval', $_POST['section_ids']);
+    $ids = array_filter($ids, fn($id) => $id > 0);
+    if (!empty($ids)) {
+        $placeholders = implode(',', $ids);
+        $conn->query("DELETE FROM sections WHERE id IN ($placeholders)");
+        $deleted_count = $conn->affected_rows;
+        $success = "$deleted_count section(s) deleted.";
+    }
+}
+
 // Filters
 $filter_school = (int)($_GET['school'] ?? 0);
 $filter_grade = (int)($_GET['grade'] ?? 0);
@@ -120,20 +132,26 @@ $teachers_list = []; $r = $conn->query("SELECT id, name, employee_id, school_id 
 
         <div class="toolbar">
             <span style="color:var(--text-muted);font-size:0.85rem;"><?= count($sections) ?> section(s)</span>
-            <button class="btn btn-primary" onclick="document.getElementById('addModal').classList.add('active')"><i class="fas fa-plus"></i> Add Section</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button type="button" class="btn" id="bulkDeleteBtn" style="display:none;background:#fee2e2;color:#dc2626;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.82rem;" onclick="bulkDelete()">
+                    <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+                </button>
+                <button class="btn btn-primary" onclick="document.getElementById('addModal').classList.add('active')"><i class="fas fa-plus"></i> Add Section</button>
+            </div>
         </div>
 
         <div class="card" style="padding:0;">
             <div class="table-wrapper">
                 <table>
                     <thead>
-                        <tr><th>School</th><th>Grade Level</th><th>Track/Strand</th><th>Section</th><th>Adviser</th><th>Students</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th style="width:40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" title="Select All"></th><th>School</th><th>Grade Level</th><th>Track/Strand</th><th>Section</th><th>Adviser</th><th>Students</th><th>Status</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                         <?php if (empty($sections)): ?>
-                            <tr><td colspan="8"><div class="empty-state"><i class="fas fa-layer-group"></i><h3>No sections found</h3></div></td></tr>
+                            <tr><td colspan="9"><div class="empty-state"><i class="fas fa-layer-group"></i><h3>No sections found</h3></div></td></tr>
                         <?php else: foreach ($sections as $sec): ?>
                             <tr>
+                                <td><input type="checkbox" class="section-cb" value="<?= $sec['id'] ?>" onclick="updateBulkBtn()"></td>
                                 <td><span class="badge badge-info"><?= htmlspecialchars($sec['school_code'] ?? '') ?></span> <?= htmlspecialchars($sec['school_name'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($sec['grade_name'] ?? '') ?></td>
                                 <td><?= !empty($sec['track']) ? '<span class="badge badge-info">' . htmlspecialchars($sec['track']) . '</span>' : '<span class="text-muted">—</span>' ?></td>
@@ -306,6 +324,44 @@ $teachers_list = []; $r = $conn->query("SELECT id, name, employee_id, school_id 
         for (let i = 1; i < opts.length; i++) {
             opts[i].style.display = (!schoolId || opts[i].dataset.school === schoolId) ? '' : 'none';
         }
+    }
+
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.section-cb').forEach(cb => cb.checked = master.checked);
+        updateBulkBtn();
+    }
+
+    function updateBulkBtn() {
+        const checked = document.querySelectorAll('.section-cb:checked');
+        const btn = document.getElementById('bulkDeleteBtn');
+        const count = document.getElementById('selectedCount');
+        const selectAll = document.getElementById('selectAll');
+        const total = document.querySelectorAll('.section-cb');
+        count.textContent = checked.length;
+        btn.style.display = checked.length > 0 ? '' : 'none';
+        selectAll.checked = total.length > 0 && checked.length === total.length;
+    }
+
+    function bulkDelete() {
+        const checked = document.querySelectorAll('.section-cb:checked');
+        if (checked.length === 0) return;
+        if (!confirm('Delete ' + checked.length + ' selected section(s)? This cannot be undone.')) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        checked.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'section_ids[]';
+            input.value = cb.value;
+            form.appendChild(input);
+        });
+        const action = document.createElement('input');
+        action.type = 'hidden';
+        action.name = 'bulk_delete_sections';
+        action.value = '1';
+        form.appendChild(action);
+        document.body.appendChild(form);
+        form.submit();
     }
     </script>
 </body>
