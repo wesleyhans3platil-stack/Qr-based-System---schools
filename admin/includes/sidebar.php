@@ -142,8 +142,8 @@ if ($__sl_r && $__sl_row = $__sl_r->fetch_assoc()) {
             </a>
         </li>
         <li class="nav-item">
-            <a href="../api/backup_database.php" class="nav-link" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Downloading...'; setTimeout(()=>this.innerHTML='<i class=\'fas fa-database\'></i> Database Backup', 3000);">
-                <i class="fas fa-database"></i> Database Backup
+            <a href="backups.php" class="nav-link <?= $current_page === 'backups' ? 'active' : '' ?>">
+                <i class="fas fa-database"></i> Database Backups
             </a>
         </li>
         <?php endif; ?>
