@@ -58,9 +58,9 @@ $timed_out_today = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL $school_filter_sql $extra_filter");
 if ($r) $timed_out_today = $r->fetch_assoc()['cnt'];
 
-// Absent today (not scanned — exclude students created today)
+// Absent today (not scanned — exclude students created today unless they attended)
 $relevant_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND DATE(created_at) < '$filter_date' " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = $admin_school_id " : "") . ($filter_school ? "AND school_id = $filter_school" : ""));
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND (DATE(created_at) < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)) " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = $admin_school_id " : "") . ($filter_school ? "AND school_id = $filter_school" : ""));
 if ($r) $relevant_students = $r->fetch_assoc()['cnt'];
 $absent_today = max(0, $relevant_students - $timed_in_today);
 
@@ -72,7 +72,7 @@ if ($r) $teachers_in = $r->fetch_assoc()['cnt'];
 // ─── Per-School Breakdown ───
 $school_breakdown = [];
 $school_sql = "SELECT s.id, s.name, s.code,
-    (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND DATE(st.created_at) < '$filter_date') as enrolled,
+    (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND (DATE(st.created_at) < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as enrolled,
     (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
     (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present,
     (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers
