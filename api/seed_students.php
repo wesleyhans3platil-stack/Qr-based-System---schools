@@ -121,8 +121,12 @@ try {
             // Generate QR code
             $qr_code = 'STU-' . $school['id'] . '-' . $lrn . '-' . bin2hex(random_bytes(4));
 
-            $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')");
-            $stmt->bind_param("ssiiiss", $lrn, $full_name, $school['id'], $grade['id'], $section_id, $guardian, $qr_code);
+            // Backdate created_at so students appear in 2-day absence alerts
+            $days_ago = mt_rand(3, 30);
+            $created_at = date('Y-m-d H:i:s', strtotime("-{$days_ago} days"));
+
+            $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)");
+            $stmt->bind_param("ssiiisss", $lrn, $full_name, $school['id'], $grade['id'], $section_id, $guardian, $qr_code, $created_at);
 
             if ($stmt->execute()) {
                 $total_added++;
