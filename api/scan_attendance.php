@@ -77,9 +77,9 @@ $school_id = $person['school_id'];
 // ══════════════════════════════════════════════
 $time_settings = getTimeSettings();
 $time_in_start  = $time_settings['time_in_start']  ?? '06:00:00';
-$time_in_end    = $time_settings['time_in_end']    ?? '09:00:00';
-$time_out_start = $time_settings['time_out_start'] ?? '16:00:00';
-$time_out_end   = $time_settings['time_out_end']   ?? '18:00:00';
+$time_in_end    = $time_settings['time_in_end']    ?? '11:30:00';
+$time_out_start = $time_settings['time_out_start'] ?? '13:00:00';
+$time_out_end   = $time_settings['time_out_end']   ?? '16:30:00';
 
 // ══════════════════════════════════════════════
 // 3. DETERMINE SCAN WINDOW & SCHOOL DAY
@@ -96,15 +96,34 @@ if (!isSchoolDay($today, $conn)) {
 }
 
 $is_time_in_window  = ($current_time >= $time_in_start && $current_time <= $time_in_end);
-$is_time_out_window = ($current_time > $time_in_end);
+$is_time_out_window = ($current_time >= $time_out_start && $current_time <= $time_out_end);
 
-if (!$is_time_in_window && !$is_time_out_window) {
+if ($current_time < $time_in_start) {
     // Before time_in_start — too early
     echo json_encode([
         'success' => false,
         'error' => 'Scanning not available yet. Time In starts at ' . date('h:i A', strtotime($time_in_start)) . '.',
         'person' => buildPersonResponse($person, $person_type)
     ]);
+    ob_end_flush(); exit;
+}
+
+if (!$is_time_in_window && !$is_time_out_window) {
+    if ($current_time > $time_in_end && $current_time < $time_out_start) {
+        // Lunch break gap
+        echo json_encode([
+            'success' => false,
+            'error' => 'Scanning paused. Time Out starts at ' . date('h:i A', strtotime($time_out_start)) . '.',
+            'person' => buildPersonResponse($person, $person_type)
+        ]);
+    } else {
+        // After time_out_end
+        echo json_encode([
+            'success' => false,
+            'error' => 'Scanning has ended for today. Time Out closed at ' . date('h:i A', strtotime($time_out_end)) . '.',
+            'person' => buildPersonResponse($person, $person_type)
+        ]);
+    }
     ob_end_flush(); exit;
 }
 
