@@ -126,6 +126,53 @@ function getTimeSettings() {
 }
 
 /**
+ * Store an uploaded file in the database for persistence across Railway deploys.
+ * @param string $relativePath e.g. 'assets/uploads/logos/system_logo_123.png'
+ * @param string $absolutePath Full filesystem path to the file
+ */
+function storeFileInDB($relativePath, $absolutePath) {
+    global $conn;
+    if (!file_exists($absolutePath)) return false;
+    $data = file_get_contents($absolutePath);
+    if ($data === false) return false;
+    $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';
+    $size = filesize($absolutePath);
+    $stmt = $conn->prepare("INSERT INTO file_storage (file_path, mime_type, file_data, file_size) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE mime_type=VALUES(mime_type), file_data=VALUES(file_data), file_size=VALUES(file_size), updated_at=NOW()");
+    $null = null;
+    $stmt->bind_param("ssbi", $relativePath, $mime, $null, $size);
+    $stmt->send_long_data(2, $data);
+    return $stmt->execute();
+}
+
+/**
+ * Remove a file from the database storage.
+ */
+function removeFileFromDB($relativePath) {
+    global $conn;
+    $stmt = $conn->prepare("DELETE FROM file_storage WHERE file_path = ?");
+    $stmt->bind_param("s", $relativePath);
+    return $stmt->execute();
+}
+
+/**
+ * Restore all files from database to filesystem (called once after each deploy).
+ * Only restores files that are missing on the filesystem.
+ */
+function restoreFilesFromDB($conn) {
+    $baseDir = __DIR__ . '/../';
+    $result = $conn->query("SELECT file_path, file_data FROM file_storage");
+    if (!$result) return;
+    while ($row = $result->fetch_assoc()) {
+        $fullPath = $baseDir . $row['file_path'];
+        if (!file_exists($fullPath)) {
+            $dir = dirname($fullPath);
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            file_put_contents($fullPath, $row['file_data']);
+        }
+    }
+}
+
+/**
  * ══════════════════════════════════════════════════════════════════
  * SCHEMA INITIALIZATION FUNCTION
  * Only called once when config/.db_initialized lock file is missing.
@@ -347,6 +394,16 @@ function initializeSchema($conn) {
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+    // ─── FILE STORAGE (persist uploads across Railway deploys) ───
+    $conn->query("CREATE TABLE IF NOT EXISTS file_storage (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        file_path VARCHAR(500) NOT NULL UNIQUE,
+        mime_type VARCHAR(100) NOT NULL,
+        file_data LONGBLOB NOT NULL,
+        file_size INT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
     // ═══ PERFORMANCE INDEXES for 20,000+ students / 800 concurrent scanners ═══
     // Temporarily disable exception mode so duplicate index errors are silently ignored
     $prev_report = mysqli_report(MYSQLI_REPORT_OFF);
@@ -382,6 +439,14 @@ function seedRequiredData($conn) {
     // means the seed check runs once after each deploy.
     $seedFlag = sys_get_temp_dir() . '/qr_seed_done';
     if (file_exists($seedFlag)) return;
+
+    // ─── Restore uploaded files from DB (logos, images) ───
+    // On Railway, the filesystem resets on every deploy. Files stored in the
+    // database are restored to the filesystem so existing <img> tags keep working.
+    $tableExists = $conn->query("SHOW TABLES LIKE 'file_storage'");
+    if ($tableExists && $tableExists->num_rows > 0) {
+        restoreFilesFromDB($conn);
+    }
 
     // ─── Seed Sipalay City Schools (adds any missing ones) ───
     $schoolsToSeed = [

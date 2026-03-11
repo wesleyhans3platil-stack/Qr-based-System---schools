@@ -135,6 +135,12 @@ if (isset($_POST['upload_logo'])) {
                 $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('system_logo', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
                 $stmt->bind_param("ss", $filename, $filename);
                 $stmt->execute();
+                // Persist in DB for Railway redeploys
+                storeFileInDB('assets/uploads/logos/' . $filename, $uploadDir . $filename);
+                // Remove old file from DB
+                if ($oldLogo && $oldLogo['setting_value']) {
+                    removeFileFromDB('assets/uploads/logos/' . $oldLogo['setting_value']);
+                }
                 $success = 'System logo updated!';
             } else {
                 $error = 'Failed to upload logo.';
@@ -151,8 +157,11 @@ if (isset($_POST['upload_logo'])) {
 if (isset($_POST['remove_logo'])) {
     $uploadDir = '../assets/uploads/logos/';
     $oldLogo = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='system_logo'")->fetch_assoc();
-    if ($oldLogo && $oldLogo['setting_value'] && file_exists($uploadDir . $oldLogo['setting_value'])) {
-        unlink($uploadDir . $oldLogo['setting_value']);
+    if ($oldLogo && $oldLogo['setting_value']) {
+        if (file_exists($uploadDir . $oldLogo['setting_value'])) {
+            unlink($uploadDir . $oldLogo['setting_value']);
+        }
+        removeFileFromDB('assets/uploads/logos/' . $oldLogo['setting_value']);
     }
     $conn->query("DELETE FROM system_settings WHERE setting_key='system_logo'");
     $success = 'Logo removed.';

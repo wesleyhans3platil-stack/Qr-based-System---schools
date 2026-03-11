@@ -25,9 +25,12 @@ function handleLogoUpload($file, $old_logo = null) {
     $dest = $upload_dir . $filename;
 
     if (move_uploaded_file($file['tmp_name'], $dest)) {
+        // Persist in DB for Railway redeploys
+        storeFileInDB('assets/uploads/logos/' . $filename, $dest);
         // Delete old logo if exists
-        if ($old_logo && file_exists($upload_dir . $old_logo)) {
-            unlink($upload_dir . $old_logo);
+        if ($old_logo) {
+            if (file_exists($upload_dir . $old_logo)) unlink($upload_dir . $old_logo);
+            removeFileFromDB('assets/uploads/logos/' . $old_logo);
         }
         return ['filename' => $filename];
     }
@@ -98,6 +101,7 @@ if (isset($_POST['edit_school'])) {
         if ($old['logo']) {
             $logo_path = __DIR__ . '/../assets/uploads/logos/' . $old['logo'];
             if (file_exists($logo_path)) unlink($logo_path);
+            removeFileFromDB('assets/uploads/logos/' . $old['logo']);
         }
         $logo_val = '';
     }
@@ -122,6 +126,11 @@ if (isset($_POST['edit_school'])) {
 // Handle Delete School
 if (isset($_POST['delete_school'])) {
     $id = (int)$_POST['school_id'];
+    // Remove logo from DB storage
+    $old = $conn->query("SELECT logo FROM schools WHERE id = $id")->fetch_assoc();
+    if ($old && $old['logo']) {
+        removeFileFromDB('assets/uploads/logos/' . $old['logo']);
+    }
     $conn->query("DELETE FROM schools WHERE id = $id");
     $success = 'School deleted.';
 }
