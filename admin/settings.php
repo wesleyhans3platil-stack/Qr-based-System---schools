@@ -411,6 +411,22 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                 </table>
             </div>
         </div>
+
+        <!-- Sample Data Generator -->
+        <div class="card" style="margin-top:24px;border:2px dashed var(--border);">
+            <div class="card-title"><i class="fas fa-flask" style="color:#8b5cf6;"></i> Sample Data Generator</div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px;">Generate sample/demo students with Filipino names across all active schools. Sections and QR codes are created automatically.</p>
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
+                <div class="form-group" style="margin-bottom:0;flex:0 0 200px;">
+                    <label style="font-size:0.78rem;font-weight:600;margin-bottom:4px;display:block;">Students per School</label>
+                    <input type="number" id="seedCount" class="form-control" value="10" min="1" max="50" style="padding:8px 12px;">
+                </div>
+                <button type="button" class="btn btn-primary" id="seedBtn" onclick="seedStudents()" style="padding:9px 20px;white-space:nowrap;background:#8b5cf6;">
+                    <i class="fas fa-wand-magic-sparkles"></i> Generate Sample Students
+                </button>
+            </div>
+            <div id="seedResult" style="display:none;margin-top:16px;"></div>
+        </div>
     </div>
 
     <!-- Add Admin Modal -->
@@ -488,6 +504,45 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
         document.getElementById('cpAdminId').value = id;
         document.getElementById('cpUsername').textContent = username;
         document.getElementById('changePasswordModal').classList.add('active');
+    }
+
+    function seedStudents() {
+        const btn = document.getElementById('seedBtn');
+        const resultDiv = document.getElementById('seedResult');
+        const count = document.getElementById('seedCount').value;
+
+        if (!confirm('Generate ' + count + ' sample students per school?')) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Creating sample students...</div>';
+
+        fetch('../api/seed_students.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/x-www-form-urlencoded'},
+            body: 'count=' + encodeURIComponent(count)
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Generate Sample Students';
+            if (data.success) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success" style="margin:0;">
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>${data.students_added}</strong> students added across <strong>${data.schools_count}</strong> school(s). 
+                        <strong>${data.sections_created}</strong> new section(s) created.
+                    </div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-times-circle"></i> ${data.error || 'Failed to generate students.'}</div>`;
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Generate Sample Students';
+            resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-times-circle"></i> Error: ${err.message}</div>`;
+        });
     }
 
     function checkAbsenceSMS() {
