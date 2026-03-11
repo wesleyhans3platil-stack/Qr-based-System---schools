@@ -262,6 +262,19 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         </div>
     </div>
 
+    <!-- Database Backup -->
+    <div class="card" style="margin-top:24px;border-left:4px solid var(--primary);">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <div class="card-title" style="margin-bottom:4px;"><i class="fas fa-database" style="color:var(--primary);"></i> Database Backup</div>
+                <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">Download a full backup of all attendance data, students, teachers, schools, and settings.</p>
+            </div>
+            <a href="../api/backup_database.php" class="btn btn-primary" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Downloading...'; setTimeout(()=>this.innerHTML='<i class=\'fas fa-download\'></i> Download Backup', 3000);">
+                <i class="fas fa-download"></i> Download Backup
+            </a>
+        </div>
+    </div>
+
     <script>
     // Auto-refresh every 60 seconds
     setTimeout(() => location.reload(), 60000);
