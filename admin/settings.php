@@ -254,14 +254,18 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             <!-- Time Settings -->
             <div class="card">
                 <div class="card-title"><i class="fas fa-clock"></i> Attendance Time Windows</div>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">
+                    <b>Morning:</b> Time In anytime up to Time In End &bull; Time Out from Time In End to PM Time In<br>
+                    <b>Afternoon:</b> Late Time In (if no record) or Time Out until Time Out End &bull; Blocked after Time Out End
+                </p>
                 <form method="POST">
                     <div class="form-row">
-                        <div class="form-group"><label>Time In Start</label><input type="time" name="time_in_start" class="form-control" value="<?= $time_settings['time_in_start'] ?? '07:00' ?>"></div>
-                        <div class="form-group"><label>Time In End (Late after)</label><input type="time" name="time_in_end" class="form-control" value="<?= $time_settings['time_in_end'] ?? '11:30' ?>"></div>
+                        <div class="form-group"><label>AM Time In End (Late after)</label><input type="time" name="time_in_end" class="form-control" value="<?= $time_settings['time_in_end'] ?? '11:30' ?>"></div>
+                        <div class="form-group"><label>AM Time Out Until</label><input type="time" name="time_out_start" class="form-control" value="<?= $time_settings['time_out_start'] ?? '13:00' ?>"></div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group"><label>Time Out Start</label><input type="time" name="time_out_start" class="form-control" value="<?= $time_settings['time_out_start'] ?? '13:00' ?>"></div>
-                        <div class="form-group"><label>Time Out End</label><input type="time" name="time_out_end" class="form-control" value="<?= $time_settings['time_out_end'] ?? '16:00' ?>"></div>
+                        <div class="form-group"><label>PM Time In Start</label><input type="time" name="time_in_start" class="form-control" value="<?= $time_settings['time_in_start'] ?? '13:00' ?>"></div>
+                        <div class="form-group"><label>PM Time Out End</label><input type="time" name="time_out_end" class="form-control" value="<?= $time_settings['time_out_end'] ?? '16:00' ?>"></div>
                     </div>
                     <button type="submit" name="update_time" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save Time Settings</button>
                 </form>

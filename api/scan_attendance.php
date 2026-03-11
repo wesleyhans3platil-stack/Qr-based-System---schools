@@ -95,16 +95,6 @@ if (!isSchoolDay($today, $conn)) {
     ob_end_flush(); exit;
 }
 
-// ── Before 7:00 AM: too early ──
-if ($current_time < $time_in_start) {
-    echo json_encode([
-        'success' => false,
-        'error' => 'Too early! Scanning starts at ' . date('h:i A', strtotime($time_in_start)) . '.',
-        'person' => buildPersonResponse($person, $person_type)
-    ]);
-    ob_end_flush(); exit;
-}
-
 // ── After 4:00 PM: scanning closed ──
 if ($current_time > $time_out_end) {
     echo json_encode([
@@ -116,10 +106,10 @@ if ($current_time > $time_out_end) {
 }
 
 // Time windows:
-// 7:00 AM - 11:30 AM  → Time In (morning)
-// 11:30 AM - 1:00 PM  → Time Out (morning dismissal / lunch)
-// 1:00 PM - 4:00 PM   → Time In if no record yet (PM late arrival), otherwise Time Out
-$is_morning_time_in  = ($current_time >= $time_in_start && $current_time <= $time_in_end);
+// Before 11:30 AM    → Time In (morning, early arrivals allowed)
+// 11:30 AM - 1:00 PM → Time Out (morning dismissal / lunch)
+// 1:00 PM - 4:00 PM  → Time In if no record yet (PM late arrival), otherwise Time Out
+$is_morning_time_in  = ($current_time <= $time_in_end);
 $is_midday_time_out  = ($current_time > $time_in_end && $current_time < $time_out_start);
 $is_afternoon        = ($current_time >= $time_out_start && $current_time <= $time_out_end);
 
