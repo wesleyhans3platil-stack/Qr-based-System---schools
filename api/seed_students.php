@@ -27,10 +27,13 @@ if ($action === 'clear') {
         // Delete attendance records for seeded students (QR starts with STU-)
         $conn->query("DELETE a FROM attendance a JOIN students s ON a.person_id = s.id AND a.person_type='student' WHERE s.qr_code LIKE 'STU-%'");
         // Delete seeded students
-        $r = $conn->query("DELETE FROM students WHERE qr_code LIKE 'STU-%'");
+        $conn->query("DELETE FROM students WHERE qr_code LIKE 'STU-%'");
         $deleted = $conn->affected_rows;
+        // Remove sections that now have zero students
+        $conn->query("DELETE sec FROM sections sec LEFT JOIN students s ON s.section_id = sec.id WHERE s.id IS NULL");
+        $sections_removed = $conn->affected_rows;
         $conn->commit();
-        echo json_encode(['success' => true, 'deleted' => $deleted]);
+        echo json_encode(['success' => true, 'deleted' => $deleted, 'sections_removed' => $sections_removed]);
     } catch (Exception $e) {
         $conn->rollback();
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);

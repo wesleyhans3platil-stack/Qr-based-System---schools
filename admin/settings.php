@@ -527,7 +527,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-trash"></i> Clear Sample Data';
             if (data.success) {
-                resultDiv.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fas fa-check-circle"></i> <strong>${data.deleted}</strong> sample student(s) removed.</div>`;
+                resultDiv.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fas fa-check-circle"></i> <strong>${data.deleted}</strong> sample student(s) and <strong>${data.sections_removed}</strong> empty section(s) removed.</div>`;
             } else {
                 resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-times-circle"></i> ${data.error || 'Failed to clear.'}</div>`;
             }
