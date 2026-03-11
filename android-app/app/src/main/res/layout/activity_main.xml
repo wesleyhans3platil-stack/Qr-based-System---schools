@@ -21,13 +21,13 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Orange progress bar -->
+    <!-- Green progress bar -->
     <ProgressBar
         android:id="@+id/progressBar"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="match_parent"
         android:layout_height="3dp"
-        android:progressTint="@color/orange_500"
+        android:progressTint="@color/green_500"
         android:progressBackgroundTint="@android:color/transparent"
         android:max="100"
         android:visibility="gone" />
@@ -109,7 +109,7 @@
             android:layout_height="wrap_content"
             android:text="Sign Out"
             android:textSize="14sp"
-            android:textColor="@color/orange_600"
+            android:textColor="@color/green_600"
             android:fontFamily="sans-serif-medium"
             android:layout_marginTop="20dp"
             android:padding="8dp"

@@ -214,7 +214,7 @@
                 android:layout_height="28dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp"
-                android:indeterminateTint="@color/orange_600"
+                android:indeterminateTint="@color/green_600"
                 android:visibility="gone" />
 
         </LinearLayout>

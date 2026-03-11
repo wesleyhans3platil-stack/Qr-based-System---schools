@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Secondary button — light orange -->
+<!-- Secondary button — light green -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#FFEDD5" />
+            <solid android:color="#D1FAE5" />
             <corners android:radius="16dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FFF7ED" />
+            <solid android:color="#ECFDF5" />
             <corners android:radius="16dp" />
         </shape>
     </item>

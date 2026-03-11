@@ -115,7 +115,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#4338ca">
+    <meta name="theme-color" content="#059669">
     <title>Dashboard — EduTrack | SDO-Sipalay City</title>
     <?php if ($systemLogo): ?><link rel="icon" type="image/png" href="<?= $systemLogo ?>"><?php endif; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -123,21 +123,21 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --primary: #4f46e5; --primary-light: #818cf8; --primary-dark: #3730a3;
-            --primary-bg: rgba(79,70,229,0.08); --primary-glow: rgba(79,70,229,0.25);
-            --bg: #f0f2f8; --bg-mesh: #e8ecf4;
-            --card: rgba(255,255,255,0.85); --card-solid: #fff;
-            --text: #0f172a; --text-secondary: #334155; --muted: #64748b; --border: rgba(226,232,240,0.8);
+            --primary: #059669; --primary-light: #34d399; --primary-dark: #047857;
+            --primary-bg: rgba(5,150,105,0.08); --primary-glow: rgba(5,150,105,0.25);
+            --bg: #f0fdf4; --bg-mesh: #ecfdf5;
+            --card: rgba(255,255,255,0.92); --card-solid: #fff;
+            --text: #022c22; --text-secondary: #065f46; --muted: #6b7280; --border: rgba(167,243,208,0.6);
             --green: #059669; --green-light: #34d399; --green-bg: linear-gradient(135deg, #ecfdf5, #d1fae5);
             --red: #dc2626; --red-light: #f87171; --red-bg: linear-gradient(135deg, #fef2f2, #fee2e2);
             --amber: #d97706; --amber-light: #fbbf24; --amber-bg: linear-gradient(135deg, #fffbeb, #fef3c7);
             --blue: #2563eb; --blue-light: #60a5fa; --blue-bg: linear-gradient(135deg, #eff6ff, #dbeafe);
-            --purple-bg: linear-gradient(135deg, #f5f3ff, #ede9fe);
+            --purple-bg: linear-gradient(135deg, #ecfdf5, #d1fae5);
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
             --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
             --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
             --shadow-xl: 0 20px 40px -8px rgba(0,0,0,0.1), 0 8px 16px -6px rgba(0,0,0,0.06);
-            --shadow-3d: 0 1px 1px rgba(0,0,0,0.08), 0 2px 2px rgba(0,0,0,0.06), 0 4px 4px rgba(0,0,0,0.04), 0 8px 8px rgba(0,0,0,0.02), 0 16px 16px rgba(0,0,0,0.01);
+            --shadow-3d: 0 1px 1px rgba(0,0,0,0.06), 0 2px 2px rgba(0,0,0,0.04), 0 4px 4px rgba(0,0,0,0.03), 0 8px 8px rgba(0,0,0,0.02);
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
@@ -153,9 +153,9 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             content: '';
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1;
             background:
-                radial-gradient(ellipse at 20% 50%, rgba(79,70,229,0.04) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.05) 0%, transparent 50%),
-                radial-gradient(ellipse at 60% 80%, rgba(34,211,238,0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 50%, rgba(5,150,105,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(52,211,153,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(16,185,129,0.04) 0%, transparent 50%),
                 var(--bg);
         }
 
@@ -177,14 +177,14 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         @keyframes floatGlow {
-            0%,100% { box-shadow: 0 0 20px rgba(79,70,229,0.15); }
-            50% { box-shadow: 0 0 30px rgba(79,70,229,0.25); }
+            0%,100% { box-shadow: 0 0 20px rgba(5,150,105,0.15); }
+            50% { box-shadow: 0 0 30px rgba(5,150,105,0.25); }
         }
 
-        /* ─── App Header — Premium Glass ─── */
+        /* ─── App Header — Emerald Green ─── */
         .app-header {
             position: sticky; top: 0; z-index: 100;
-            background: linear-gradient(135deg, #3730a3 0%, #4f46e5 40%, #6366f1 70%, #818cf8 100%);
+            background: linear-gradient(135deg, #047857 0%, #059669 40%, #10b981 70%, #34d399 100%);
             padding: calc(14px + var(--safe-top)) 20px 20px;
             color: #fff;
             overflow: hidden;
@@ -295,7 +295,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .ring-card::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0; height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light), #22d3ee, var(--primary-light), var(--primary));
+            background: linear-gradient(90deg, var(--primary), var(--primary-light), #2dd4bf, var(--primary-light), var(--primary));
             background-size: 200% 100%;
             animation: shimmer 3s ease infinite;
         }
@@ -303,7 +303,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             content: '';
             position: absolute; top: 4px; right: -40px; width: 120px; height: 120px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(5,150,105,0.06) 0%, transparent 70%);
             pointer-events: none;
         }
         .ring-wrap {
@@ -311,11 +311,11 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
         }
         .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .ring-wrap .ring-bg { fill: none; stroke: #e8ecf4; stroke-width: 11; }
+        .ring-wrap .ring-bg { fill: none; stroke: #d1fae5; stroke-width: 11; }
         .ring-wrap .ring-fill {
             fill: none; stroke-width: 11; stroke-linecap: round;
             transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-            filter: drop-shadow(0 0 6px currentColor);
+            filter: drop-shadow(0 0 8px currentColor);
             animation: ringDraw 1.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .ring-center {
@@ -416,13 +416,13 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .sc-name { font-size: 0.9rem; font-weight: 800; color: var(--text); line-height: 1.25; }
         .sc-code {
             font-size: 0.62rem; font-weight: 700;
-            background: linear-gradient(135deg, rgba(79,70,229,0.08), rgba(129,140,248,0.12));
+            background: linear-gradient(135deg, rgba(5,150,105,0.08), rgba(52,211,153,0.12));
             color: var(--primary);
             padding: 5px 12px; border-radius: 10px; white-space: nowrap;
-            border: 1px solid rgba(79,70,229,0.1);
+            border: 1px solid rgba(5,150,105,0.1);
         }
         .sc-bar {
-            height: 8px; background: #e8ecf4; border-radius: 4px; overflow: hidden; margin-bottom: 14px;
+            height: 8px; background: #d1fae5; border-radius: 4px; overflow: hidden; margin-bottom: 14px;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
         }
         .sc-bar .fill {
@@ -460,7 +460,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         }
         .filter-select:active {
             border-color: var(--primary-light);
-            box-shadow: var(--shadow-lg), 0 0 0 3px rgba(79,70,229,0.1);
+            box-shadow: var(--shadow-lg), 0 0 0 3px rgba(5,150,105,0.1);
         }
 
         /* ─── Bottom Nav — Frosted Glass ─── */
@@ -483,14 +483,14 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         }
         .nav-item.active {
             color: var(--primary);
-            background: rgba(79,70,229,0.08);
+            background: rgba(5,150,105,0.08);
         }
         .nav-item.active::before {
             content: '';
             position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
             width: 20px; height: 3px; border-radius: 2px;
             background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            box-shadow: 0 1px 6px rgba(79,70,229,0.3);
+            box-shadow: 0 1px 6px rgba(5,150,105,0.3);
         }
         .nav-item i { font-size: 1.15rem; transition: transform 0.2s; }
         .nav-item:active i { transform: scale(0.9); }
@@ -530,7 +530,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         }
         .filter-option:hover { background: var(--bg); }
         .filter-option.selected {
-            background: linear-gradient(135deg, rgba(79,70,229,0.06), rgba(129,140,248,0.1));
+            background: linear-gradient(135deg, rgba(5,150,105,0.06), rgba(52,211,153,0.1));
             color: var(--primary);
         }
         .filter-option .check { display: none; }
