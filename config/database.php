@@ -454,6 +454,25 @@ function seedRequiredData($conn) {
         restoreFilesFromDB($conn);
     }
 
+    // ─── Run migrations for existing databases ───
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $conn->query("ALTER TABLE students ADD COLUMN guardian_contact VARCHAR(20) DEFAULT NULL AFTER section_id");
+    $conn->query("ALTER TABLE sections ADD COLUMN track VARCHAR(50) DEFAULT NULL AFTER name");
+    $col_check = $conn->query("SHOW COLUMNS FROM holidays LIKE 'type'");
+    if ($col_check && $col_check->num_rows === 0) {
+        $conn->query("ALTER TABLE holidays ADD COLUMN type ENUM('regular','special','suspension') DEFAULT 'regular' AFTER name");
+    }
+    // file_storage table (needed if initializeSchema didn't run)
+    $conn->query("CREATE TABLE IF NOT EXISTS file_storage (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        file_path VARCHAR(500) NOT NULL UNIQUE,
+        mime_type VARCHAR(100) NOT NULL,
+        file_data LONGBLOB NOT NULL,
+        file_size INT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
     // ─── Seed Sipalay City Schools (adds any missing ones) ───
     $schoolsToSeed = [
         'Agripino Alvarez Elementary School',
