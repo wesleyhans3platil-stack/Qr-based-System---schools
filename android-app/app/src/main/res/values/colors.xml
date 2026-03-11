@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ═══ Vibrant App Color Palette ═══ -->
+
+    <!-- Primary: Bold Orange-Coral Gradient -->
+    <color name="orange_50">#FFF7ED</color>
+    <color name="orange_100">#FFEDD5</color>
+    <color name="orange_200">#FED7AA</color>
+    <color name="orange_400">#FB923C</color>
+    <color name="orange_500">#F97316</color>
+    <color name="orange_600">#EA580C</color>
+    <color name="orange_700">#C2410C</color>
+    <color name="orange_800">#9A3412</color>
+
+    <!-- Secondary: Deep Teal -->
+    <color name="teal_400">#2DD4BF</color>
+    <color name="teal_500">#14B8A6</color>
+    <color name="teal_600">#0D9488</color>
+    <color name="teal_700">#0F766E</color>
+
+    <!-- Accent: Warm Yellow -->
+    <color name="yellow_400">#FACC15</color>
+    <color name="yellow_500">#EAB308</color>
+
+    <!-- Legacy references (keep for compatibility) -->
+    <color name="indigo_50">#FFF7ED</color>
+    <color name="indigo_100">#FFEDD5</color>
+    <color name="indigo_200">#FED7AA</color>
+    <color name="indigo_500">#F97316</color>
+    <color name="indigo_600">#EA580C</color>
+    <color name="indigo_700">#C2410C</color>
+    <color name="indigo_800">#9A3412</color>
+    <color name="indigo_900">#7C2D12</color>
+
+    <!-- Neutrals (Modern dark) -->
+    <color name="white">#FFFFFF</color>
+    <color name="bg_primary">#FAFAF9</color>
+    <color name="bg_secondary">#FFFFFF</color>
+    <color name="bg_tertiary">#F5F5F4</color>
+    <color name="dark_surface">#1C1917</color>
+    <color name="dark_card">#292524</color>
+    <color name="separator">#E7E5E4</color>
+    <color name="separator_light">#F5F5F4</color>
+    <color name="label_primary">#1C1917</color>
+    <color name="label_secondary">#44403C</color>
+    <color name="label_tertiary">#78716C</color>
+    <color name="label_quaternary">#A8A29E</color>
+    <color name="slate_50">#FAFAF9</color>
+    <color name="slate_100">#F5F5F4</color>
+
+    <!-- Semantic -->
+    <color name="system_green">#22C55E</color>
+    <color name="system_red">#EF4444</color>
+    <color name="system_orange">#F97316</color>
+
+    <!-- Special -->
+    <color name="grid_line">#10D6D3D1</color>
+    <color name="frosted_glass">#F0FFFFFF</color>
+    <color name="shadow_soft">#18000000</color>
+    <color name="input_bg">#F5F5F4</color>
+    <color name="input_border">#D6D3D1</color>
+    <color name="input_border_focus">#F97316</color>
+
+    <!-- Splash/Login gradient endpoints -->
+    <color name="gradient_start">#F97316</color>
+    <color name="gradient_mid">#EA580C</color>
+    <color name="gradient_end">#DC2626</color>
+</resources>

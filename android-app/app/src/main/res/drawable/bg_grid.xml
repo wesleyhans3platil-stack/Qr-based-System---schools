@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base background -->
+    <item>
+        <color android:color="@color/bg_primary" />
+    </item>
+    <!-- Horizontal grid lines -->
+    <item>
+        <bitmap
+            android:src="@drawable/grid_tile"
+            android:tileMode="repeat" />
+    </item>
+</layer-list>

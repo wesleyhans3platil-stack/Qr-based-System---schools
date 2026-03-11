@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo container with orange gradient -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient android:startColor="#F97316" android:centerColor="#EA580C" android:endColor="#DC2626" android:angle="135" />
+</shape>

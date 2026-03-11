@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primary CTA button — vibrant orange gradient -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <gradient android:startColor="#C2410C" android:endColor="#EA580C" android:angle="135" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:startColor="#F97316" android:endColor="#EA580C" android:angle="135" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+</selector>
