@@ -118,7 +118,10 @@ for ($count = 0; $count < 7; $count++) {
     $cnt = 0;
     $r2 = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$d' AND time_in IS NOT NULL AND school_id = $admin_school_id");
     if ($r2) $cnt = $r2->fetch_assoc()['cnt'];
-    array_unshift($trend_data, ['date' => date('M d', strtotime($d)), 'present' => $cnt, 'absent' => max(0, $total_students - $cnt)]);
+    $day_total = 0;
+    $r2 = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $admin_school_id AND DATE(created_at) <= '$d'");
+    if ($r2) $day_total = $r2->fetch_assoc()['cnt'];
+    array_unshift($trend_data, ['date' => date('M d', strtotime($d)), 'present' => $cnt, 'absent' => max(0, $day_total - $cnt)]);
     $d = date('Y-m-d', strtotime($d . ' -1 day'));
 }
 ?>

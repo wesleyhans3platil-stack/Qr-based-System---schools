@@ -138,7 +138,10 @@ for ($count = 0; $count < 7; $count++) {
     $cnt = 0;
     $r2 = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$d' AND time_in IS NOT NULL");
     if ($r2) $cnt = $r2->fetch_assoc()['cnt'];
-    array_unshift($div_trend, ['date' => date('M d', strtotime($d)), 'present' => $cnt, 'absent' => max(0, $total_students - $cnt)]);
+    $day_total = 0;
+    $r2 = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND DATE(created_at) <= '$d'");
+    if ($r2) $day_total = $r2->fetch_assoc()['cnt'];
+    array_unshift($div_trend, ['date' => date('M d', strtotime($d)), 'present' => $cnt, 'absent' => max(0, $day_total - $cnt)]);
     $d = date('Y-m-d', strtotime($d . ' -1 day'));
 }
 
@@ -185,7 +188,10 @@ if ($view_school) {
         $cnt = 0;
         $r2 = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$d2' AND time_in IS NOT NULL AND school_id = $vs");
         if ($r2) $cnt = $r2->fetch_assoc()['cnt'];
-        array_unshift($drill_trend, ['date' => date('M d', strtotime($d2)), 'present' => $cnt, 'absent' => max(0, $school_total - $cnt)]);
+        $day_total = 0;
+        $r2 = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $vs AND DATE(created_at) <= '$d2'");
+        if ($r2) $day_total = $r2->fetch_assoc()['cnt'];
+        array_unshift($drill_trend, ['date' => date('M d', strtotime($d2)), 'present' => $cnt, 'absent' => max(0, $day_total - $cnt)]);
         $d2 = date('Y-m-d', strtotime($d2 . ' -1 day'));
     }
 }
