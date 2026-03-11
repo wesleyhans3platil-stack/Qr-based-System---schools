@@ -96,24 +96,15 @@ if (!isSchoolDay($today, $conn)) {
 }
 
 $is_time_in_window  = ($current_time <= $time_in_end);
-$is_time_out_window = ($current_time >= $time_out_start && $current_time <= $time_out_end);
+$is_time_out_window = ($current_time > $time_in_end && $current_time <= $time_out_end);
 
 if (!$is_time_in_window && !$is_time_out_window) {
-    if ($current_time > $time_in_end && $current_time < $time_out_start) {
-        // Lunch break gap
-        echo json_encode([
-            'success' => false,
-            'error' => 'Scanning paused. Time Out starts at ' . date('h:i A', strtotime($time_out_start)) . '.',
-            'person' => buildPersonResponse($person, $person_type)
-        ]);
-    } else {
-        // After time_out_end
-        echo json_encode([
-            'success' => false,
-            'error' => 'Scanning has ended for today. Time Out closed at ' . date('h:i A', strtotime($time_out_end)) . '.',
-            'person' => buildPersonResponse($person, $person_type)
-        ]);
-    }
+    // After time_out_end
+    echo json_encode([
+        'success' => false,
+        'error' => 'Scanning has ended for today. Time Out closed at ' . date('h:i A', strtotime($time_out_end)) . '.',
+        'person' => buildPersonResponse($person, $person_type)
+    ]);
     ob_end_flush(); exit;
 }
 
