@@ -273,6 +273,7 @@ function initializeSchema($conn) {
         time_in TIME DEFAULT NULL,
         time_out TIME DEFAULT NULL,
         status ENUM('present','late','absent') DEFAULT 'present',
+        last_scan DATETIME DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY unique_attendance (person_type, person_id, date),
         FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
@@ -458,6 +459,7 @@ function seedRequiredData($conn) {
     mysqli_report(MYSQLI_REPORT_OFF);
     $conn->query("ALTER TABLE students ADD COLUMN guardian_contact VARCHAR(20) DEFAULT NULL AFTER section_id");
     $conn->query("ALTER TABLE sections ADD COLUMN track VARCHAR(50) DEFAULT NULL AFTER name");
+    $conn->query("ALTER TABLE attendance ADD COLUMN last_scan DATETIME DEFAULT NULL");
 
     // ─── Update time settings to correct AM/PM schedule ───
     $conn->query("UPDATE time_settings SET setting_value='07:00:00' WHERE setting_name='time_in_start'");

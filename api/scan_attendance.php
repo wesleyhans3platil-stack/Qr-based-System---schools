@@ -124,6 +124,64 @@ $is_midday_time_out  = ($current_time > $time_in_end && $current_time < $time_ou
 $is_afternoon        = ($current_time >= $time_out_start && $current_time <= $time_out_end);
 
 // ══════════════════════════════════════════════
+// 3b. ANTI-CHEAT: 1-minute cooldown + prevent duplicate scans
+// ══════════════════════════════════════════════
+$existing = null;
+$stmt = $conn->prepare("SELECT id, time_in, time_out, last_scan FROM attendance WHERE person_type = ? AND person_id = ? AND date = ?");
+$stmt->bind_param("sis", $person_type, $person_id, $today);
+$stmt->execute();
+$existing = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if ($existing) {
+    // ── 1-minute cooldown between scans ──
+    if (!empty($existing['last_scan'])) {
+        $last_scan_ts = strtotime($existing['last_scan']);
+        $now_ts = time();
+        $seconds_since = $now_ts - $last_scan_ts;
+        if ($seconds_since < 60) {
+            $wait = 60 - $seconds_since;
+            echo json_encode([
+                'success' => false,
+                'error' => 'Please wait ' . $wait . ' second' . ($wait !== 1 ? 's' : '') . ' before scanning again.',
+                'person' => buildPersonResponse($person, $person_type)
+            ]);
+            ob_end_flush(); exit;
+        }
+    }
+
+    // ── Block duplicate Time In (already scanned in this morning) ──
+    if ($is_morning_time_in && !empty($existing['time_in'])) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Already timed in at ' . date('h:i A', strtotime($existing['time_in'])) . '. Cannot scan Time In again.',
+            'person' => buildPersonResponse($person, $person_type)
+        ]);
+        ob_end_flush(); exit;
+    }
+
+    // ── Block duplicate Time Out (already scanned out at midday) ──
+    if ($is_midday_time_out && !empty($existing['time_out'])) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Already timed out at ' . date('h:i A', strtotime($existing['time_out'])) . '. Cannot scan Time Out again.',
+            'person' => buildPersonResponse($person, $person_type)
+        ]);
+        ob_end_flush(); exit;
+    }
+
+    // ── Afternoon: block if already has both Time In and Time Out ──
+    if ($is_afternoon && !empty($existing['time_in']) && !empty($existing['time_out'])) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Already completed attendance today (In: ' . date('h:i A', strtotime($existing['time_in'])) . ', Out: ' . date('h:i A', strtotime($existing['time_out'])) . ').',
+            'person' => buildPersonResponse($person, $person_type)
+        ]);
+        ob_end_flush(); exit;
+    }
+}
+
+// ══════════════════════════════════════════════
 // 4. RECORD ATTENDANCE — uses INSERT … ON DUPLICATE KEY UPDATE
 //    The UNIQUE KEY (person_type, person_id, date) handles race conditions
 //    and eliminates the need for a separate SELECT check
@@ -135,14 +193,14 @@ $status_value = 'present';
 if ($is_morning_time_in) {
     // ═══ 7:00 AM - 11:30 AM: TIME IN ═══
     $stmt = $conn->prepare(
-        "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, status)
-         VALUES (?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE time_in = VALUES(time_in), status = VALUES(status)"
+        "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, status, last_scan)
+         VALUES (?, ?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE time_in = VALUES(time_in), status = VALUES(status), last_scan = NOW()"
     );
     $stmt->bind_param("siisss", $person_type, $person_id, $school_id, $today, $current_time, $status_value);
     if ($stmt->execute()) {
         $action = 'TIME_IN';
-        $message = ($stmt->affected_rows === 1) ? 'Time In recorded successfully!' : 'Time In updated successfully!';
+        $message = 'Time In recorded successfully!';
     } else {
         echo json_encode(['success' => false, 'error' => 'Failed to record attendance.']);
         ob_end_flush(); exit;
@@ -160,9 +218,9 @@ if ($is_morning_time_in) {
     if (!$attendance) {
         $late_status = 'late';
         $stmt = $conn->prepare(
-            "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, time_out, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE time_out = VALUES(time_out)"
+            "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, time_out, status, last_scan)
+             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE time_out = VALUES(time_out), last_scan = NOW()"
         );
         $stmt->bind_param("siissss", $person_type, $person_id, $school_id, $today, $current_time, $current_time, $late_status);
         if ($stmt->execute()) {
@@ -174,7 +232,7 @@ if ($is_morning_time_in) {
         }
         $stmt->close();
     } else {
-        $stmt = $conn->prepare("UPDATE attendance SET time_out = ? WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE attendance SET time_out = ?, last_scan = NOW() WHERE id = ?");
         $stmt->bind_param("si", $current_time, $attendance['id']);
         if ($stmt->execute()) {
             $action = 'TIME_OUT';
@@ -198,9 +256,9 @@ if ($is_morning_time_in) {
         // No record yet — PM late arrival, record as Time In
         $late_status = 'late';
         $stmt = $conn->prepare(
-            "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, status)
-             VALUES (?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE time_in = VALUES(time_in)"
+            "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, status, last_scan)
+             VALUES (?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE time_in = VALUES(time_in), last_scan = NOW()"
         );
         $stmt->bind_param("siisss", $person_type, $person_id, $school_id, $today, $current_time, $late_status);
         if ($stmt->execute()) {
@@ -213,7 +271,7 @@ if ($is_morning_time_in) {
         $stmt->close();
     } else {
         // Already has record — Time Out
-        $stmt = $conn->prepare("UPDATE attendance SET time_out = ? WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE attendance SET time_out = ?, last_scan = NOW() WHERE id = ?");
         $stmt->bind_param("si", $current_time, $attendance['id']);
         if ($stmt->execute()) {
             $action = 'TIME_OUT';
