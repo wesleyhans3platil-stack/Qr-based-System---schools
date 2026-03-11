@@ -153,7 +153,7 @@ $grades = []; $r = $conn->query("SELECT id, name FROM grade_levels ORDER BY id")
                             <tr>
                                 <td><strong><?= htmlspecialchars($rec['person_name'] ?? 'Unknown') ?></strong></td>
                                 <td><code style="color:var(--primary);"><?= htmlspecialchars($rec['lrn'] ?? $rec['employee_id'] ?? '') ?></code></td>
-                                <td><span class="badge badge-info"><?= htmlspecialchars($rec['school_code'] ?? '') ?></span></td>
+                                <td><span class="badge badge-info"><?= htmlspecialchars($rec['school_name'] ?? '') ?></span></td>
                                 <?php if ($filter_type === 'student'): ?><td><?= htmlspecialchars(($rec['grade_name'] ?? '') . ' — ' . ($rec['section_name'] ?? '')) ?></td><?php endif; ?>
                                 <td>
                                     <?php if ($rec['time_in']): ?>
