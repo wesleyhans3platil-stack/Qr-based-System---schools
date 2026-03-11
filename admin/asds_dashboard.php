@@ -37,16 +37,18 @@ $r = $conn->query("SELECT COUNT(*) as cnt FROM teachers WHERE status='active'");
 if ($r) $total_teachers = $r->fetch_assoc()['cnt'];
 
 $total_present = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL");
 if ($r) $total_present = $r->fetch_assoc()['cnt'];
 
-$total_absent = $total_students - $total_present;
-$div_att_pct = $total_students > 0 ? round(($total_present / $total_students) * 100, 1) : 0;
+$total_present = min($total_present, $total_students);
+$total_absent = max(0, $total_students - $total_present);
+$div_att_pct = $total_students > 0 ? min(100, round(($total_present / $total_students) * 100, 1)) : 0;
 
 $teachers_present = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='teacher' AND date='$filter_date' AND time_in IS NOT NULL");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.date='$filter_date' AND a.time_in IS NOT NULL");
 if ($r) $teachers_present = $r->fetch_assoc()['cnt'];
-$teachers_absent = $total_teachers - $teachers_present;
+$teachers_present = min($teachers_present, $total_teachers);
+$teachers_absent = max(0, $total_teachers - $teachers_present);
 
 // Get all absent teachers today (division-wide)
 $absent_teachers_list = [];
@@ -76,8 +78,8 @@ $schools_data = [];
 $sql = "SELECT s.id, s.name, s.code, s.logo,
         (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active') as total_students,
         (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers,
-        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
-        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present
+        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
+        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present
         FROM schools s WHERE s.status='active' ORDER BY s.name";
 $r = $conn->query($sql);
 if ($r) while ($row = $r->fetch_assoc()) $schools_data[] = $row;
@@ -113,8 +115,8 @@ if ($r) while ($row = $r->fetch_assoc()) $all_absent_2day[] = $row;
 // Schools sorted by attendance rate (highest first) for ranking
 $schools_ranked = $schools_data;
 usort($schools_ranked, function($a, $b) {
-    $pct_a = $a['total_students'] > 0 ? ($a['present'] / $a['total_students']) * 100 : 100;
-    $pct_b = $b['total_students'] > 0 ? ($b['present'] / $b['total_students']) * 100 : 100;
+    $pct_a = $a['total_students'] > 0 ? min(100, ($a['present'] / $a['total_students']) * 100) : 100;
+    $pct_b = $b['total_students'] > 0 ? min(100, ($b['present'] / $b['total_students']) * 100) : 100;
     return $pct_b <=> $pct_a; // descending = best attendance first
 });
 

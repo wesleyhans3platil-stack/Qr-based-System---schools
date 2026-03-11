@@ -41,16 +41,17 @@ if ($r) $total_teachers = $r->fetch_assoc()['cnt'];
 
 // Students present today
 $students_present = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL AND school_id = $admin_school_id");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL AND a.school_id = $admin_school_id");
 if ($r) $students_present = $r->fetch_assoc()['cnt'];
 
 // Students timed out
 $students_timed_out = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_out IS NOT NULL AND school_id = $admin_school_id");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL AND a.school_id = $admin_school_id");
 if ($r) $students_timed_out = $r->fetch_assoc()['cnt'];
 
 // Students absent
-$students_absent = $total_students - $students_present;
+$students_present = min($students_present, $total_students);
+$students_absent = max(0, $total_students - $students_present);
 
 // Late students
 $students_late = 0;
@@ -59,13 +60,14 @@ if ($r) $students_late = $r->fetch_assoc()['cnt'];
 
 // Teachers present
 $teachers_present = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='teacher' AND date='$filter_date' AND time_in IS NOT NULL AND school_id = $admin_school_id");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.date='$filter_date' AND a.time_in IS NOT NULL AND a.school_id = $admin_school_id");
 if ($r) $teachers_present = $r->fetch_assoc()['cnt'];
 
-$teachers_absent = $total_teachers - $teachers_present;
+$teachers_present = min($teachers_present, $total_teachers);
+$teachers_absent = max(0, $total_teachers - $teachers_present);
 
-// Attendance percentage
-$att_pct = $total_students > 0 ? round(($students_present / $total_students) * 100, 1) : 0;
+// Attendance percentage (capped at 100%)
+$att_pct = $total_students > 0 ? min(100, round(($students_present / $total_students) * 100, 1)) : 0;
 
 // 2-day consecutive absentees
 $consecutive_absent = [];
