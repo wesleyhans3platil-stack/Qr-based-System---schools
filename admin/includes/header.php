@@ -19,3 +19,4 @@ if (!isset($__favicon)) {
 <link rel="stylesheet" href="includes/styles.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="../assets/realtime.js" defer></script>
