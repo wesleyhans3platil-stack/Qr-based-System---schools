@@ -58,37 +58,23 @@ $stmt2->execute();
 $r2 = $stmt2->get_result();
 while ($row = $r2->fetch_assoc()) $absent_teachers[] = $row;
 
-// ── User Activity: recent admin logins ──
-$activity_filter = '';
-if ($admin_role === 'principal' && $admin_school) {
-    $activity_filter = " WHERE a.school_id = " . (int)$admin_school . " OR a.role IN ('super_admin','superintendent','asst_superintendent')";
-} else {
-    $activity_filter = " WHERE 1=1";
-}
-
+// ── User Activity: recent admin logins (super_admin only) ──
 $admin_activity = [];
-$sql3 = "SELECT a.id, a.username, a.full_name, a.role, a.last_login, a.created_at, sc.name as school_name
-         FROM admins a
-         LEFT JOIN schools sc ON a.school_id = sc.id
-         $activity_filter
-         ORDER BY a.last_login DESC NULLS LAST, a.created_at DESC
-         LIMIT 50";
-// MySQL doesn't support NULLS LAST natively, use COALESCE workaround
-$sql3 = "SELECT a.id, a.username, a.full_name, a.role, a.last_login, a.created_at, sc.name as school_name
-         FROM admins a
-         LEFT JOIN schools sc ON a.school_id = sc.id
-         $activity_filter
-         ORDER BY COALESCE(a.last_login, '2000-01-01') DESC
-         LIMIT 50";
-$r3 = $conn->query($sql3);
-if ($r3) { while ($row = $r3->fetch_assoc()) $admin_activity[] = $row; }
-
 $role_labels = [
     'super_admin' => ['Super Admin', '#dc2626'],
     'superintendent' => ['Superintendent', '#7c3aed'],
     'asst_superintendent' => ['Asst. Superintendent', '#0891b2'],
     'principal' => ['Principal', '#059669']
 ];
+if ($admin_role === 'super_admin') {
+    $sql3 = "SELECT a.id, a.username, a.full_name, a.role, a.last_login, a.created_at, sc.name as school_name
+             FROM admins a
+             LEFT JOIN schools sc ON a.school_id = sc.id
+             ORDER BY COALESCE(a.last_login, '2000-01-01') DESC
+             LIMIT 50";
+    $r3 = $conn->query($sql3);
+    if ($r3) { while ($row = $r3->fetch_assoc()) $admin_activity[] = $row; }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -163,6 +149,7 @@ $role_labels = [
             <?php endif; ?>
         </div>
 
+        <?php if ($admin_role === 'super_admin'): ?>
         <!-- User Activity -->
         <div class="card">
             <div class="card-title" style="margin-bottom:16px;">
@@ -211,6 +198,7 @@ $role_labels = [
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
