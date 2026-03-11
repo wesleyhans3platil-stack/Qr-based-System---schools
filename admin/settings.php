@@ -261,7 +261,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                     </div>
                     <div class="form-row">
                         <div class="form-group"><label>Time Out Start</label><input type="time" name="time_out_start" class="form-control" value="<?= $time_settings['time_out_start'] ?? '13:00' ?>"></div>
-                        <div class="form-group"><label>Time Out End</label><input type="time" name="time_out_end" class="form-control" value="<?= $time_settings['time_out_end'] ?? '16:30' ?>"></div>
+                        <div class="form-group"><label>Time Out End</label><input type="time" name="time_out_end" class="form-control" value="<?= $time_settings['time_out_end'] ?? '16:00' ?>"></div>
                     </div>
                     <button type="submit" name="update_time" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save Time Settings</button>
                 </form>

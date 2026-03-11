@@ -335,7 +335,7 @@ function initializeSchema($conn) {
             ('time_in_start', '07:00:00'),
             ('time_in_end', '11:30:00'),
             ('time_out_start', '13:00:00'),
-            ('time_out_end', '16:30:00')");
+            ('time_out_end', '16:00:00')");
     }
 
     // ─── SMS LOGS ───
@@ -463,7 +463,7 @@ function seedRequiredData($conn) {
     $conn->query("UPDATE time_settings SET setting_value='07:00:00' WHERE setting_name='time_in_start'");
     $conn->query("UPDATE time_settings SET setting_value='11:30:00' WHERE setting_name='time_in_end'");
     $conn->query("UPDATE time_settings SET setting_value='13:00:00' WHERE setting_name='time_out_start'");
-    $conn->query("UPDATE time_settings SET setting_value='16:30:00' WHERE setting_name='time_out_end'");
+    $conn->query("UPDATE time_settings SET setting_value='16:00:00' WHERE setting_name='time_out_end'");
     $col_check = $conn->query("SHOW COLUMNS FROM holidays LIKE 'type'");
     if ($col_check && $col_check->num_rows === 0) {
         $conn->query("ALTER TABLE holidays ADD COLUMN type ENUM('regular','special','suspension') DEFAULT 'regular' AFTER name");

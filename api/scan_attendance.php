@@ -76,10 +76,10 @@ $school_id = $person['school_id'];
 // 2. TIME SETTINGS — cached, no extra query per scan
 // ══════════════════════════════════════════════
 $time_settings = getTimeSettings();
-$time_in_start  = $time_settings['time_in_start']  ?? '06:00:00';
+$time_in_start  = $time_settings['time_in_start']  ?? '07:00:00';
 $time_in_end    = $time_settings['time_in_end']    ?? '11:30:00';
 $time_out_start = $time_settings['time_out_start'] ?? '13:00:00';
-$time_out_end   = $time_settings['time_out_end']   ?? '16:30:00';
+$time_out_end   = $time_settings['time_out_end']   ?? '16:00:00';
 
 // ══════════════════════════════════════════════
 // 3. DETERMINE SCAN WINDOW & SCHOOL DAY
@@ -95,11 +95,18 @@ if (!isSchoolDay($today, $conn)) {
     ob_end_flush(); exit;
 }
 
-$is_time_in_window  = ($current_time <= $time_in_end);
-$is_time_out_window = ($current_time > $time_in_end && $current_time <= $time_out_end);
+// ── Before 7:00 AM: too early ──
+if ($current_time < $time_in_start) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Too early! Scanning starts at ' . date('h:i A', strtotime($time_in_start)) . '.',
+        'person' => buildPersonResponse($person, $person_type)
+    ]);
+    ob_end_flush(); exit;
+}
 
-if (!$is_time_in_window && !$is_time_out_window) {
-    // After time_out_end
+// ── After 4:00 PM: scanning closed ──
+if ($current_time > $time_out_end) {
     echo json_encode([
         'success' => false,
         'error' => 'Scanning has ended for today. Time Out closed at ' . date('h:i A', strtotime($time_out_end)) . '.',
@@ -107,6 +114,14 @@ if (!$is_time_in_window && !$is_time_out_window) {
     ]);
     ob_end_flush(); exit;
 }
+
+// Time windows:
+// 7:00 AM - 11:30 AM  → Time In (morning)
+// 11:30 AM - 1:00 PM  → Time Out (morning dismissal / lunch)
+// 1:00 PM - 4:00 PM   → Time In if no record yet (PM late arrival), otherwise Time Out
+$is_morning_time_in  = ($current_time >= $time_in_start && $current_time <= $time_in_end);
+$is_midday_time_out  = ($current_time > $time_in_end && $current_time < $time_out_start);
+$is_afternoon        = ($current_time >= $time_out_start && $current_time <= $time_out_end);
 
 // ══════════════════════════════════════════════
 // 4. RECORD ATTENDANCE — uses INSERT … ON DUPLICATE KEY UPDATE
@@ -117,8 +132,8 @@ $action = '';
 $message = '';
 $status_value = 'present';
 
-if ($is_time_in_window) {
-    // ═══ TIME IN: Use UPSERT — insert or update time_in in one atomic query ═══
+if ($is_morning_time_in) {
+    // ═══ 7:00 AM - 11:30 AM: TIME IN ═══
     $stmt = $conn->prepare(
         "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, status)
          VALUES (?, ?, ?, ?, ?, ?)
@@ -134,9 +149,8 @@ if ($is_time_in_window) {
     }
     $stmt->close();
 
-} else {
-    // ═══ TIME OUT: Need to check if attendance exists to decide insert vs update ═══
-    // Use SELECT with only the columns we need (id, time_in) — indexed lookup
+} elseif ($is_midday_time_out) {
+    // ═══ 11:30 AM - 1:00 PM: TIME OUT (morning dismissal / lunch) ═══
     $stmt = $conn->prepare("SELECT id, time_in FROM attendance WHERE person_type = ? AND person_id = ? AND date = ?");
     $stmt->bind_param("sis", $person_type, $person_id, $today);
     $stmt->execute();
@@ -144,7 +158,6 @@ if ($is_time_in_window) {
     $stmt->close();
 
     if (!$attendance) {
-        // No Time In record — create with time_out directly
         $late_status = 'late';
         $stmt = $conn->prepare(
             "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, time_out, status)
@@ -161,7 +174,45 @@ if ($is_time_in_window) {
         }
         $stmt->close();
     } else {
-        // Has record — UPDATE time_out only
+        $stmt = $conn->prepare("UPDATE attendance SET time_out = ? WHERE id = ?");
+        $stmt->bind_param("si", $current_time, $attendance['id']);
+        if ($stmt->execute()) {
+            $action = 'TIME_OUT';
+            $message = 'Time Out recorded successfully!';
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Failed to record Time Out.']);
+            ob_end_flush(); exit;
+        }
+        $stmt->close();
+    }
+
+} elseif ($is_afternoon) {
+    // ═══ 1:00 PM - 4:00 PM: TIME IN if no record, TIME OUT if already timed in ═══
+    $stmt = $conn->prepare("SELECT id, time_in, time_out FROM attendance WHERE person_type = ? AND person_id = ? AND date = ?");
+    $stmt->bind_param("sis", $person_type, $person_id, $today);
+    $stmt->execute();
+    $attendance = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$attendance) {
+        // No record yet — PM late arrival, record as Time In
+        $late_status = 'late';
+        $stmt = $conn->prepare(
+            "INSERT INTO attendance (person_type, person_id, school_id, date, time_in, status)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE time_in = VALUES(time_in)"
+        );
+        $stmt->bind_param("siisss", $person_type, $person_id, $school_id, $today, $current_time, $late_status);
+        if ($stmt->execute()) {
+            $action = 'TIME_IN';
+            $message = 'Afternoon Time In recorded (late arrival).';
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Failed to record attendance.']);
+            ob_end_flush(); exit;
+        }
+        $stmt->close();
+    } else {
+        // Already has record — Time Out
         $stmt = $conn->prepare("UPDATE attendance SET time_out = ? WHERE id = ?");
         $stmt->bind_param("si", $current_time, $attendance['id']);
         if ($stmt->execute()) {
