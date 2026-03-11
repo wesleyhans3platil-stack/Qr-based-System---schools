@@ -120,10 +120,15 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         .school-stats .ss { text-align: center; }
         .school-stats .ss .val { font-size: 1.1rem; font-weight: 800; }
         .school-stats .ss .lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
-        .progress-bar { width: 120px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: flex; }
+        .progress-bar { width: 120px; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; display: flex; }
         .progress-bar .fill { height: 100%; transition: width 0.5s ease; }
-        .flag-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .flag-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.2s; border-radius: 8px; }
+        .flag-item:hover { background: #f8fafc; }
         .flag-item:last-child { border-bottom: none; }
+        .welcome-banner { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 28px 32px; border-radius: var(--radius); margin-bottom: 28px; box-shadow: var(--shadow-md); position: relative; overflow: hidden; }
+        .welcome-banner::after { content: ''; position: absolute; right: -50px; top: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        .welcome-banner h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+        .welcome-banner p { font-size: 0.95rem; opacity: 0.9; }
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .dashboard-grid .card.full { grid-column: span 1; } }
     </style>
 </head>
@@ -131,21 +136,28 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="main-content">
+        <div class="welcome-banner">
+            <div>
+                <h2>Welcome back, <?= htmlspecialchars($_SESSION['admin_full_name'] ?? 'Super Admin') ?> 👋</h2>
+                <p>Here is your division-wide attendance overview for <?= date('l, F j, Y', strtotime($filter_date)) ?></p>
+            </div>
+        </div>
+
         <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
             <div>
                 <h1><i class="fas fa-chart-pie" style="color:var(--primary);margin-right:8px;"></i> Division Dashboard</h1>
-                <p>Real-time attendance monitoring — <?= date('l, F j, Y', strtotime($filter_date)) ?></p>
+                <p style="color:var(--text-muted);">Real-time attendance monitoring</p>
             </div>
-            <form method="GET" style="display:flex;gap:10px;align-items:center;">
+            <form method="GET" style="display:flex;gap:10px;align-items:center;background:var(--card-bg);padding:8px;border-radius:12px;box-shadow:var(--shadow-sm);border:1px solid var(--border);">
                 <?php if ($admin_role !== 'principal'): ?>
-                <select name="school" class="form-control" style="width:auto;min-width:200px;" onchange="this.form.submit()">
+                <select name="school" class="form-control" style="width:auto;min-width:200px;border:none;background:#f8fafc;" onchange="this.form.submit()">
                     <option value="">All Schools</option>
                     <?php foreach ($schools_list as $sch): ?>
                         <option value="<?= $sch['id'] ?>" <?= $filter_school == $sch['id'] ? 'selected' : '' ?>><?= htmlspecialchars($sch['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <input type="date" name="date" class="form-control" style="width:auto;" value="<?= $filter_date ?>" onchange="this.form.submit()">
+                <input type="date" name="date" class="form-control" style="width:auto;border:none;background:#f8fafc;" value="<?= $filter_date ?>" onchange="this.form.submit()">
             </form>
         </div>
 
@@ -266,8 +278,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
 
 
     <script>
-    // Auto-refresh every 60 seconds
-    setTimeout(() => location.reload(), 60000);
+    // System now utilizes real-time polling to silently update instead of reloading.
     </script>
 </body>
 </html>
