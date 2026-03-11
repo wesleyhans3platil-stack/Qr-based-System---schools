@@ -308,10 +308,17 @@ function initializeSchema($conn) {
         id INT AUTO_INCREMENT PRIMARY KEY,
         holiday_date DATE NOT NULL,
         name VARCHAR(200) NOT NULL,
+        type ENUM('regular','special','suspension') DEFAULT 'regular',
         school_id INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Add 'type' column if missing (migration for existing deployments)
+    $col_check = $conn->query("SHOW COLUMNS FROM holidays LIKE 'type'");
+    if ($col_check && $col_check->num_rows === 0) {
+        $conn->query("ALTER TABLE holidays ADD COLUMN type ENUM('regular','special','suspension') DEFAULT 'regular' AFTER name");
+    }
 
     // ─── PUSH SUBSCRIPTIONS (Web Push Notifications) ───
     $conn->query("CREATE TABLE IF NOT EXISTS push_subscriptions (
