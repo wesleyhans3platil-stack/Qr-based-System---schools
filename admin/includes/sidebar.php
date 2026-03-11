@@ -119,8 +119,8 @@ if ($__sl_r && $__sl_row = $__sl_r->fetch_assoc()) {
             </a>
         </li>
         <li class="nav-item">
-            <a href="sms_logs.php" class="nav-link <?= $current_page === 'sms_logs' ? 'active' : '' ?>">
-                <i class="fas fa-sms"></i> SMS Logs
+            <a href="notifications.php" class="nav-link <?= $current_page === 'notifications' ? 'active' : '' ?>">
+                <i class="fas fa-bell"></i> Notifications
             </a>
         </li>
         <?php endif; ?>
@@ -128,8 +128,8 @@ if ($__sl_r && $__sl_row = $__sl_r->fetch_assoc()) {
         <?php if (in_array($admin_role, ['super_admin', 'principal'])): ?>
         <div class="nav-section-label">Notifications</div>
         <li class="nav-item">
-            <a href="sms_logs.php" class="nav-link <?= $current_page === 'sms_logs' ? 'active' : '' ?>">
-                <i class="fas fa-sms"></i> SMS Logs
+            <a href="notifications.php" class="nav-link <?= $current_page === 'notifications' ? 'active' : '' ?>">
+                <i class="fas fa-bell"></i> Notifications
             </a>
         </li>
         <?php endif; ?>
