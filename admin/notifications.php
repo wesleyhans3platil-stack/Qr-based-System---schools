@@ -21,11 +21,13 @@ if ($admin_role === 'principal' && $admin_school) {
 
 $absent_students = [];
 $sql = "SELECT s.id, s.name, s.lrn, s.guardian_contact, sc.name as school_name, 
-               gl.name as grade_name, sec.name as section_name
+               gl.name as grade_name, sec.name as section_name,
+               t.name as adviser_name, t.contact_number as adviser_contact, t.id as adviser_id
         FROM students s
         JOIN schools sc ON s.school_id = sc.id
         JOIN grade_levels gl ON s.grade_level_id = gl.id
         JOIN sections sec ON s.section_id = sec.id
+        LEFT JOIN teachers t ON sec.adviser_id = t.id
         WHERE s.status = 'active' $school_filter
         AND DATE(s.created_at) < ?
         AND s.id NOT IN (SELECT person_id FROM attendance WHERE person_type='student' AND date = ?)
@@ -109,15 +111,22 @@ if ($admin_role === 'super_admin') {
                     </h3>
                     <div class="table-wrapper" style="max-height:350px;overflow-y:auto;">
                         <table>
-                            <thead><tr><th>Name</th><th>LRN</th><th>School</th><th>Grade & Section</th><th>Guardian</th></tr></thead>
+                            <thead><tr><th>Name</th><th>School</th><th>Grade & Section</th><th>Adviser</th></tr></thead>
                             <tbody>
                                 <?php foreach ($absent_students as $s): ?>
                                 <tr>
                                     <td style="font-weight:600;"><?= htmlspecialchars($s['name']) ?></td>
-                                    <td><code style="font-size:0.8rem;"><?= htmlspecialchars($s['lrn']) ?></code></td>
                                     <td style="font-size:0.82rem;"><?= htmlspecialchars($s['school_name']) ?></td>
                                     <td style="font-size:0.82rem;"><?= htmlspecialchars($s['grade_name']) ?> — <?= htmlspecialchars($s['section_name']) ?></td>
-                                    <td style="font-size:0.82rem;"><?= htmlspecialchars($s['guardian_contact'] ?? '') ?: '—' ?></td>
+                                    <td>
+                                        <?php if ($s['adviser_name']): ?>
+                                            <a href="#" class="adviser-link" onclick="showAdviser(<?= (int)$s['adviser_id'] ?>, '<?= htmlspecialchars(addslashes($s['adviser_name']), ENT_QUOTES) ?>', '<?= htmlspecialchars(addslashes($s['adviser_contact'] ?? ''), ENT_QUOTES) ?>', '<?= htmlspecialchars(addslashes($s['school_name']), ENT_QUOTES) ?>'); return false;" style="color:var(--primary);font-weight:600;text-decoration:none;">
+                                                <i class="fas fa-user-tie" style="margin-right:4px;"></i><?= htmlspecialchars($s['adviser_name']) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span style="color:var(--text-muted);font-size:0.82rem;">No adviser</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -201,6 +210,50 @@ if ($admin_role === 'super_admin') {
         </div>
         <?php endif; ?>
     </div>
+
+<!-- Adviser Profile Modal -->
+<div id="adviserModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff; border-radius:16px; padding:28px; max-width:380px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3); position:relative;">
+        <button onclick="document.getElementById('adviserModal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+        <div style="text-align:center; margin-bottom:20px;">
+            <div id="adviserAvatar" style="width:64px;height:64px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;margin-bottom:12px;"></div>
+            <h3 id="adviserName" style="font-size:1.1rem;font-weight:700;margin:0;"></h3>
+            <p id="adviserSchool" style="font-size:0.82rem;color:var(--text-muted);margin:4px 0 0;"></p>
+        </div>
+        <div style="background:var(--card-bg-alt);border-radius:10px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <i class="fas fa-phone" style="color:var(--primary);"></i>
+                <div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);">Contact Number</div>
+                    <div id="adviserPhone" style="font-weight:600;font-size:0.9rem;"></div>
+                </div>
+            </div>
+            <div id="adviserActions" style="display:flex;gap:8px;margin-top:12px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAdviser(id, name, contact, school) {
+    document.getElementById('adviserAvatar').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('adviserName').textContent = name;
+    document.getElementById('adviserSchool').textContent = school;
+    var phoneEl = document.getElementById('adviserPhone');
+    var actionsEl = document.getElementById('adviserActions');
+    if (contact) {
+        phoneEl.textContent = contact;
+        actionsEl.innerHTML =
+            '<a href="tel:' + contact + '" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.85rem;"><i class="fas fa-phone"></i> Call</a>' +
+            '<a href="sms:' + contact + '" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#059669;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.85rem;"><i class="fas fa-sms"></i> SMS</a>';
+    } else {
+        phoneEl.textContent = 'Not available';
+        actionsEl.innerHTML = '<span style="color:var(--text-muted);font-size:0.82rem;">No contact number on file</span>';
+    }
+    var modal = document.getElementById('adviserModal');
+    modal.style.display = 'flex';
+}
+</script>
+
 <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>
