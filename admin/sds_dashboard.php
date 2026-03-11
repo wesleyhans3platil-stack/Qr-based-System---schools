@@ -29,7 +29,7 @@ $r = $conn->query("SELECT COUNT(*) as cnt FROM schools WHERE status='active'");
 if ($r) $total_schools = $r->fetch_assoc()['cnt'];
 
 $total_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active'");
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND DATE(created_at) < '$filter_date'");
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
 
 $total_teachers = 0;
@@ -106,6 +106,7 @@ $consecutive_sql = "SELECT s.lrn, s.name, s.id as student_id, gl.name as grade, 
         JOIN sections sec ON s.section_id = sec.id
         JOIN schools sch ON s.school_id = sch.id
         WHERE s.status='active'
+        AND DATE(s.created_at) < '$filter_date'
         AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
         AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)
         ORDER BY sch.name, gl.name, sec.name, s.name";
@@ -164,6 +165,7 @@ if ($view_school) {
             ($school_days_30 - (SELECT COUNT(DISTINCT a2.date) FROM attendance a2 WHERE a2.person_id = s.id AND a2.person_type='student' AND a2.time_in IS NOT NULL AND a2.date BETWEEN DATE_SUB('$filter_date', INTERVAL 30 DAY) AND '$filter_date')) as total_absent
             FROM students s JOIN grade_levels gl ON s.grade_level_id = gl.id JOIN sections sec ON s.section_id = sec.id
             WHERE s.status='active' AND s.school_id = $vs
+            AND DATE(s.created_at) < '$filter_date'
             AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
             AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)
             ORDER BY gl.name, sec.name, s.name";

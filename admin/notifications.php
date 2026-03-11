@@ -27,12 +27,13 @@ $sql = "SELECT s.id, s.name, s.lrn, s.guardian_contact, sc.name as school_name,
         JOIN grade_levels gl ON s.grade_level_id = gl.id
         JOIN sections sec ON s.section_id = sec.id
         WHERE s.status = 'active' $school_filter
+        AND DATE(s.created_at) < ?
         AND s.id NOT IN (SELECT person_id FROM attendance WHERE person_type='student' AND date = ?)
         AND s.id NOT IN (SELECT person_id FROM attendance WHERE person_type='student' AND date = ?)
         ORDER BY sc.name, gl.name, s.name
         LIMIT 500";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("ss", $today, $yesterday);
+$stmt->bind_param("sss", $today, $today, $yesterday);
 $stmt->execute();
 $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $absent_students[] = $row;

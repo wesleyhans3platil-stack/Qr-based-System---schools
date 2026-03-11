@@ -29,9 +29,9 @@ $r = $conn->query("SELECT * FROM schools WHERE id = $admin_school_id");
 if ($r) $school = $r->fetch_assoc();
 $school_name = $school['name'] ?? 'My School';
 
-// Total students
+// Total students (exclude created today for absent calculation)
 $total_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $admin_school_id");
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $admin_school_id AND DATE(created_at) < '$filter_date'");
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
 
 // Total teachers
@@ -76,6 +76,7 @@ $sql = "SELECT s.id, s.lrn, s.name, gl.name as grade, sec.name as section
         JOIN grade_levels gl ON s.grade_level_id = gl.id
         JOIN sections sec ON s.section_id = sec.id
         WHERE s.status='active' AND s.school_id = $admin_school_id
+        AND DATE(s.created_at) < '$filter_date'
         AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
         AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)
         ORDER BY gl.name, sec.name, s.name";
