@@ -249,6 +249,7 @@ function initializeSchema($conn) {
         school_id INT NOT NULL,
         grade_level_id INT NOT NULL,
         section_id INT NOT NULL,
+        guardian_contact VARCHAR(20) DEFAULT NULL,
         qr_code VARCHAR(255) NOT NULL UNIQUE,
         status ENUM('active','inactive') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -256,6 +257,11 @@ function initializeSchema($conn) {
         FOREIGN KEY (grade_level_id) REFERENCES grade_levels(id) ON DELETE CASCADE,
         FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Add guardian_contact column if missing (for existing installs)
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $conn->query("ALTER TABLE students ADD COLUMN guardian_contact VARCHAR(20) DEFAULT NULL AFTER section_id");
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
     // ─── ATTENDANCE ───
     $conn->query("CREATE TABLE IF NOT EXISTS attendance (
