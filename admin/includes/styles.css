@@ -950,9 +950,9 @@ select.form-control {
 
 .progress-bar {
     width: 100%;
-    height: 6px;
+    height: 10px;
     background: var(--border);
-    border-radius: 3px;
+    border-radius: 5px;
     overflow: hidden;
     margin-top: 8px;
     display: flex;
@@ -963,8 +963,8 @@ select.form-control {
     transition: width 0.5s ease;
 }
 
-.progress-bar-fill.present { background: var(--success); border-radius: 3px 0 0 3px; }
-.progress-bar-fill.absent { background: var(--error); border-radius: 0 3px 3px 0; }
+.progress-bar-fill.present { background: #16a34a; border-radius: 5px 0 0 5px; }
+.progress-bar-fill.absent { background: #dc2626; border-radius: 0 5px 5px 0; }
 
 .progress-bar-fill.high { background: var(--success); border-radius: 3px; }
 .progress-bar-fill.medium { background: #d97706; border-radius: 3px; }
