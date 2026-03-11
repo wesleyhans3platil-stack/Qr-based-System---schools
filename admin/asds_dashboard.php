@@ -286,7 +286,7 @@ if ($view_school) {
                         <td class="text-warning fw-600"><?= $sec['late_count'] ?></td>
                         <td>
                             <div style="display:flex;align-items:center;gap:8px;">
-                                <div class="progress-bar" style="width:80px;"><div class="progress-bar-fill present" style="width:<?= $sr ?>%;"></div><div class="progress-bar-fill absent" style="width:<?= 100 - $sr ?>%;"></div></div>
+                                <div class="progress-bar" style="width:80px;"><div style="width:<?= $sr ?>%; height:100%; background:#16a34a; border-radius:5px 0 0 5px;"></div><div style="width:<?= 100 - $sr ?>%; height:100%; background:#dc2626; border-radius:0 5px 5px 0;"></div></div>
                                 <span class="fw-600" style="font-size:0.8rem;"><?= $sr ?>%</span>
                             </div>
                         </td>
@@ -417,7 +417,7 @@ if ($view_school) {
                         <span style="font-size:1.1rem; font-weight:800; color:<?= $pct_color ?>;"><?= $s_pct ?>%</span>
                         <span class="btn btn-sm btn-outline"><i class="fas fa-arrow-right"></i></span>
                     </div>
-                    <div class="progress-bar"><div class="progress-bar-fill present" style="width:<?= $s_pct ?>%;"></div><div class="progress-bar-fill absent" style="width:<?= 100 - $s_pct ?>%;"></div></div>
+                    <div class="progress-bar"><div style="width:<?= $s_pct ?>%; height:100%; background:#16a34a; border-radius:5px 0 0 5px;"></div><div style="width:<?= 100 - $s_pct ?>%; height:100%; background:#dc2626; border-radius:0 5px 5px 0;"></div></div>
                 </div>
             </a>
             <?php endforeach; ?>

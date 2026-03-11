@@ -261,8 +261,8 @@ for ($count = 0; $count < 7; $count++) {
                             <td>
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <div class="progress-bar" style="width:80px;">
-                                        <div class="progress-bar-fill present" style="width:<?= $sec_rate ?>%;"></div>
-                                        <div class="progress-bar-fill absent" style="width:<?= 100 - $sec_rate ?>%;"></div>
+                                        <div style="width:<?= $sec_rate ?>%; height:100%; background:#16a34a; border-radius:5px 0 0 5px;"></div>
+                                        <div style="width:<?= 100 - $sec_rate ?>%; height:100%; background:#dc2626; border-radius:0 5px 5px 0;"></div>
                                     </div>
                                     <span class="fw-600" style="font-size:0.8rem; color:<?= $sec_rate >= 90 ? '#16a34a' : ($sec_rate >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $sec_rate ?>%</span>
                                 </div>
