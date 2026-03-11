@@ -52,18 +52,17 @@ function getNonSchoolDayReason($date, $conn, $school_id = null) {
     if ($day_of_week == 7) return 'Sunday — No Classes';
 
     if ($school_id) {
-        $stmt = $conn->prepare("SELECT name, type, school_id FROM holidays WHERE holiday_date = ? AND (school_id IS NULL OR school_id = ?) ORDER BY school_id ASC LIMIT 1");
+        $stmt = $conn->prepare("SELECT name, school_id FROM holidays WHERE holiday_date = ? AND (school_id IS NULL OR school_id = ?) ORDER BY school_id ASC LIMIT 1");
         $stmt->bind_param("si", $date, $school_id);
     } else {
-        $stmt = $conn->prepare("SELECT name, type, school_id FROM holidays WHERE holiday_date = ? AND school_id IS NULL LIMIT 1");
+        $stmt = $conn->prepare("SELECT name, school_id FROM holidays WHERE holiday_date = ? AND school_id IS NULL LIMIT 1");
         $stmt->bind_param("s", $date);
     }
     $stmt->execute();
     $holiday = $stmt->get_result()->fetch_assoc();
     if ($holiday) {
-        $type_label = ucfirst($holiday['type']) . ' Holiday';
         $scope = $holiday['school_id'] ? ' (School)' : '';
-        return $holiday['name'] . ' — ' . $type_label . $scope;
+        return $holiday['name'] . ' — Holiday' . $scope;
     }
     return null;
 }
@@ -95,10 +94,10 @@ function getPreviousSchoolDay($date, $conn, $school_id = null) {
 function getHolidaysInRange($start_date, $end_date, $conn, $school_id = null) {
     $holidays = [];
     if ($school_id) {
-        $stmt = $conn->prepare("SELECT holiday_date, name, type, school_id FROM holidays WHERE holiday_date BETWEEN ? AND ? AND (school_id IS NULL OR school_id = ?) ORDER BY holiday_date");
+        $stmt = $conn->prepare("SELECT holiday_date, name, school_id FROM holidays WHERE holiday_date BETWEEN ? AND ? AND (school_id IS NULL OR school_id = ?) ORDER BY holiday_date");
         $stmt->bind_param("ssi", $start_date, $end_date, $school_id);
     } else {
-        $stmt = $conn->prepare("SELECT holiday_date, name, type, school_id FROM holidays WHERE holiday_date BETWEEN ? AND ? ORDER BY holiday_date");
+        $stmt = $conn->prepare("SELECT holiday_date, name, school_id FROM holidays WHERE holiday_date BETWEEN ? AND ? ORDER BY holiday_date");
         $stmt->bind_param("ss", $start_date, $end_date);
     }
     $stmt->execute();
