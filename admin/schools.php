@@ -210,8 +210,6 @@ if ($result) {
                         <tr>
                             <th style="width:60px;">Logo</th>
                             <th>School Name</th>
-                            <th>Address</th>
-                            <th>Contact</th>
                             <th>Students</th>
                             <th>Teachers</th>
                             <th>Sections</th>
@@ -221,7 +219,7 @@ if ($result) {
                     </thead>
                     <tbody>
                         <?php if (empty($schools)): ?>
-                            <tr><td colspan="9"><div class="empty-state"><i class="fas fa-school"></i><h3>No schools yet</h3><p>Add your first school to get started.</p></div></td></tr>
+                            <tr><td colspan="7"><div class="empty-state"><i class="fas fa-school"></i><h3>No schools yet</h3><p>Add your first school to get started.</p></div></td></tr>
                         <?php else: ?>
                             <?php foreach ($schools as $s): ?>
                                 <tr>
@@ -233,8 +231,6 @@ if ($result) {
                                         <?php endif; ?>
                                     </td>
                                     <td><strong><?= htmlspecialchars($s['name']) ?></strong></td>
-                                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($s['address'] ?: '—') ?></td>
-                                    <td><?= htmlspecialchars($s['contact_number'] ?: '—') ?></td>
                                     <td><strong><?= $s['student_count'] ?></strong></td>
                                     <td><strong><?= $s['teacher_count'] ?></strong></td>
                                     <td><?= $s['section_count'] ?></td>
@@ -289,14 +285,6 @@ if ($result) {
                             <input type="text" name="name" class="form-control" required placeholder="e.g. Sipalay City National High School">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Address</label>
-                        <input type="text" name="address" class="form-control" placeholder="School address">
-                    </div>
-                    <div class="form-group">
-                        <label>Contact Number</label>
-                        <input type="text" name="contact_number" class="form-control" placeholder="09XXXXXXXXX">
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="this.closest('.modal-overlay').classList.remove('active')">Cancel</button>
@@ -340,15 +328,7 @@ if ($result) {
                             <input type="text" name="name" id="edit_name" class="form-control" required>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Address</label>
-                        <input type="text" name="address" id="edit_address" class="form-control">
-                    </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Contact Number</label>
-                            <input type="text" name="contact_number" id="edit_contact" class="form-control">
-                        </div>
                         <div class="form-group">
                             <label>Status</label>
                             <select name="status" id="edit_status" class="form-control">
@@ -492,8 +472,6 @@ if ($result) {
     function editSchool(s) {
         document.getElementById('edit_school_id').value = s.id;
         document.getElementById('edit_name').value = s.name;
-        document.getElementById('edit_address').value = s.address || '';
-        document.getElementById('edit_contact').value = s.contact_number || '';
         document.getElementById('edit_status').value = s.status;
         document.getElementById('edit_remove_logo').value = '0';
         document.getElementById('editLogoInput').value = '';
