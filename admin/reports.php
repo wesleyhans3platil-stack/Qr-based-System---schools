@@ -39,8 +39,9 @@ switch ($report_type) {
                 GROUP BY sch.id ORDER BY sch.name";
         $r = $conn->query($sql);
         if ($r) while ($row = $r->fetch_assoc()) {
-            $row['absent'] = $row['enrolled'] - $row['present'];
-            $row['rate'] = $row['enrolled'] > 0 ? round(($row['present'] / $row['enrolled']) * 100, 1) : 0;
+            $row['present'] = min($row['present'], $row['enrolled']);
+            $row['absent'] = max(0, $row['enrolled'] - $row['present']);
+            $row['rate'] = $row['enrolled'] > 0 ? min(100, round(($row['present'] / $row['enrolled']) * 100, 1)) : 0;
             $report_data[] = $row;
         }
         break;
@@ -175,7 +176,7 @@ $schools_list = []; $r = $conn->query("SELECT id, name FROM schools WHERE status
                                     <td class="text-success fw-700"><?= $d['present'] ?></td>
                                     <td class="text-warning fw-700"><?= $d['late_count'] ?></td>
                                     <td class="text-error fw-700"><?= $d['absent'] ?></td>
-                                    <td><strong><?= $d['rate'] ?>%</strong></td>
+                                    <td><strong style="color:<?= $d['rate'] >= 90 ? '#16a34a' : ($d['rate'] >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $d['rate'] ?>%</strong></td>
                                     <td><?= $d['teachers_present'] ?>/<?= $d['total_teachers'] ?></td>
                                 </tr>
                             <?php endforeach; endif; ?>

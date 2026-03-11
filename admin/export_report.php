@@ -36,8 +36,9 @@ switch ($report_type) {
                 WHERE sch.status='active' GROUP BY sch.id ORDER BY sch.name";
         $r = $conn->query($sql);
         if ($r) while ($row = $r->fetch_assoc()) {
-            $absent = $row['enrolled'] - $row['present'];
-            $rate = $row['enrolled'] > 0 ? round(($row['present'] / $row['enrolled']) * 100, 1) : 0;
+            $row['present'] = min($row['present'], $row['enrolled']);
+            $absent = max(0, $row['enrolled'] - $row['present']);
+            $rate = $row['enrolled'] > 0 ? min(100, round(($row['present'] / $row['enrolled']) * 100, 1)) : 0;
             fputcsv($output, [$row['name'], $row['code'], $row['enrolled'], $row['present'], $row['late_count'], $absent, $rate, $row['teachers_present'], $row['total_teachers']]);
         }
         break;

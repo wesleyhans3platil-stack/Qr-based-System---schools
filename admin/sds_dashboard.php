@@ -237,12 +237,13 @@ if ($view_school) {
         <?php
         $s = null;
         foreach ($schools_data as $sc) { if ($sc['id'] == $view_school) { $s = $sc; break; } }
-        $s_absent = ($s['total_students'] ?? 0) - ($s['present'] ?? 0);
-        $s_pct = ($s['total_students'] ?? 0) > 0 ? round(($s['present'] / $s['total_students']) * 100, 1) : 0;
+        $s_present = min($s['present'] ?? 0, $s['total_students'] ?? 0);
+        $s_absent = max(0, ($s['total_students'] ?? 0) - $s_present);
+        $s_pct = ($s['total_students'] ?? 0) > 0 ? min(100, round(($s_present / $s['total_students']) * 100, 1)) : 0;
         ?>
         <div class="stats-grid">
             <div class="stat-card primary"><div class="stat-icon primary"><i class="fas fa-user-graduate"></i></div><div class="stat-info"><h3><?= $s['total_students'] ?? 0 ?></h3><span>Total Students</span></div></div>
-            <div class="stat-card success"><div class="stat-icon success"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3><?= $s['present'] ?? 0 ?></h3><span>Present Today</span></div></div>
+            <div class="stat-card success"><div class="stat-icon success"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3><?= $s_present ?></h3><span>Present Today</span></div></div>
             <div class="stat-card error"><div class="stat-icon error"><i class="fas fa-times-circle"></i></div><div class="stat-info"><h3><?= $s_absent ?></h3><span>Absent Today</span></div></div>
             <div class="stat-card info"><div class="stat-icon info"><i class="fas fa-percentage"></i></div><div class="stat-info"><h3><?= $s_pct ?>%</h3><span>Attendance Rate</span></div></div>
         </div>
