@@ -548,7 +548,6 @@ if ($section_id) {
                     <?php endif; ?>
                     <div class="card-details">
                         <h3><?= htmlspecialchars($school['name']) ?></h3>
-                        <p><?= htmlspecialchars($school['address'] ?: 'No address specified') ?></p>
                     </div>
                     <span class="card-arrow"><i class="fas fa-chevron-right"></i></span>
                 </div>
