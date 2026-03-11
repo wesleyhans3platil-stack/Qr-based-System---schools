@@ -157,6 +157,23 @@ if ($existing) {
         }
     }
 
+    // ── Minimum 5-minute gap between Time Out and next Time In ──
+    // Prevents cheating by scanning out then immediately scanning back in
+    if (!empty($existing['time_out']) && !empty($existing['time_in'])) {
+        $time_out_ts = strtotime($today . ' ' . $existing['time_out']);
+        $now_ts = time();
+        $minutes_since_out = ($now_ts - $time_out_ts) / 60;
+        if ($minutes_since_out < 5) {
+            $wait_min = ceil(5 - $minutes_since_out);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Time Out recorded at ' . date('h:i A', strtotime($existing['time_out'])) . '. Please wait ' . $wait_min . ' minute' . ($wait_min !== 1 ? 's' : '') . ' before scanning again.',
+                'person' => buildPersonResponse($person, $person_type)
+            ]);
+            ob_end_flush(); exit;
+        }
+    }
+
     // ── Block duplicate Time In (already scanned in this morning) ──
     if ($is_morning_time_in && !empty($existing['time_in'])) {
         echo json_encode([
