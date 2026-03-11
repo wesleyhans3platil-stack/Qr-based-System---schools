@@ -66,12 +66,14 @@ $conn->set_charset("utf8mb4");
 $needsInit = true;
 $tableCheck = $conn->query("SHOW TABLES LIKE 'system_settings'");
 if ($tableCheck && $tableCheck->num_rows > 0) {
-    // Tables exist — schema was already initialized, DB data persists
     $needsInit = false;
 }
 if ($needsInit) {
     initializeSchema($conn);
 }
+
+// Always ensure required seed data exists (lightweight checks)
+seedRequiredData($conn);
 
 // Store connection globally
 $GLOBALS['db_conn'] = $conn;
@@ -368,65 +370,86 @@ function initializeSchema($conn) {
         $conn->query("INSERT INTO admins (username, password, full_name, email, role) VALUES
             ('admin', '$defaultPassword', 'System Administrator', 'admin@sipalay.edu.ph', 'super_admin')");
     }
+}
 
-    // ─── Seed Sipalay City Schools if empty ───
-    $school_check = $conn->query("SELECT COUNT(*) as cnt FROM schools");
-    if ($school_check && $school_check->fetch_assoc()['cnt'] == 0) {
-        $schools = [
-            'Agripino Alvarez Elementary School',
-            'Banag Elementary School',
-            'Barangay V Elementary School',
-            'Barasbarasan Elementary School',
-            'Bawog Elementary School',
-            'Binotusan Elementary School',
-            'Binulig Elementary School',
-            'Bungabunga Elementary School',
-            'Cabadiangan Elementary School',
-            'Calangcang Elementary School',
-            'Calat-an Elementary School',
-            'Cambogui-ot Elementary School',
-            'Camindangan Elementary School',
-            'Cansauro Elementary School',
-            'Cantaca Elementary School',
-            'Canturay Elementary School',
-            'Cartagena Elementary School',
-            'Cayhagan Elementary School',
-            'Crossing Tanduay Elementary School',
-            'Genaro P. Alvarez Elementary School',
-            'Genaro P. Alvarez Elementary School II',
-            'Gil M. Montilla Elementary School',
-            'Hda. Maricalum Elementary School',
-            'Manlucahoc Elementary School',
-            'Maricalum Elementary School',
-            'Nabulao Elementary School',
-            'Nauhang Primary School',
-            'Patag Magbanua Elementary School',
-            'Dungga Integrated School',
-            'Dung-i Integrated School',
-            'Macarandan Integrated School',
-            'Mauboy Integrated School',
-            'Omas Integrated School',
-            'Tugas Integrated School',
-            'Vista Alegre Integrated School',
-            'Cambogui-ot National High School',
-            'Camindangan National High School',
-            'Cayhagan National High School',
-            'Gil Montilla National High School',
-            'Jacinto Montilla Memorial National High School',
-            'Leodegario Ponce Gonzales National High School',
-            'Mariano Gemora National High School',
-            'Maricalum Farm School',
-            'Nabulao National High School',
-            'Sipalay City National High School',
-        ];
-        $stmt = $conn->prepare("INSERT INTO schools (name, code, status) VALUES (?, ?, 'active')");
-        $num = 1;
-        foreach ($schools as $name) {
-            $code = 'SCH-' . str_pad($num, 3, '0', STR_PAD_LEFT);
-            $stmt->bind_param("ss", $name, $code);
-            $stmt->execute();
-            $num++;
+/**
+ * Seed required data — runs on every request but uses lightweight checks.
+ * Only inserts rows that don't already exist (safe to call repeatedly).
+ */
+function seedRequiredData($conn) {
+    // Use a filesystem flag to avoid running DB checks on every single request.
+    // This flag resets on redeploy (ephemeral container), which is fine — it just
+    // means the seed check runs once after each deploy.
+    $seedFlag = sys_get_temp_dir() . '/qr_seed_done';
+    if (file_exists($seedFlag)) return;
+
+    // ─── Seed Sipalay City Schools (adds any missing ones) ───
+    $schoolsToSeed = [
+        'Agripino Alvarez Elementary School',
+        'Banag Elementary School',
+        'Barangay V Elementary School',
+        'Barasbarasan Elementary School',
+        'Bawog Elementary School',
+        'Binotusan Elementary School',
+        'Binulig Elementary School',
+        'Bungabunga Elementary School',
+        'Cabadiangan Elementary School',
+        'Calangcang Elementary School',
+        'Calat-an Elementary School',
+        'Cambogui-ot Elementary School',
+        'Camindangan Elementary School',
+        'Cansauro Elementary School',
+        'Cantaca Elementary School',
+        'Canturay Elementary School',
+        'Cartagena Elementary School',
+        'Cayhagan Elementary School',
+        'Crossing Tanduay Elementary School',
+        'Genaro P. Alvarez Elementary School',
+        'Genaro P. Alvarez Elementary School II',
+        'Gil M. Montilla Elementary School',
+        'Hda. Maricalum Elementary School',
+        'Manlucahoc Elementary School',
+        'Maricalum Elementary School',
+        'Nabulao Elementary School',
+        'Nauhang Primary School',
+        'Patag Magbanua Elementary School',
+        'Dungga Integrated School',
+        'Dung-i Integrated School',
+        'Macarandan Integrated School',
+        'Mauboy Integrated School',
+        'Omas Integrated School',
+        'Tugas Integrated School',
+        'Vista Alegre Integrated School',
+        'Cambogui-ot National High School',
+        'Camindangan National High School',
+        'Cayhagan National High School',
+        'Gil Montilla National High School',
+        'Jacinto Montilla Memorial National High School',
+        'Leodegario Ponce Gonzales National High School',
+        'Mariano Gemora National High School',
+        'Maricalum Farm School',
+        'Nabulao National High School',
+        'Sipalay City National High School',
+    ];
+
+    // Get next available code number
+    $code_r = $conn->query("SELECT MAX(CAST(SUBSTRING(code, 5) AS UNSIGNED)) as max_num FROM schools WHERE code LIKE 'SCH-%'");
+    $nextNum = ($code_r && $row = $code_r->fetch_assoc()) ? (int)$row['max_num'] + 1 : 1;
+
+    $stmtCheck = $conn->prepare("SELECT id FROM schools WHERE name = ?");
+    $stmtIns = $conn->prepare("INSERT INTO schools (name, code, status) VALUES (?, ?, 'active')");
+    foreach ($schoolsToSeed as $sName) {
+        $stmtCheck->bind_param("s", $sName);
+        $stmtCheck->execute();
+        $stmtCheck->store_result();
+        if ($stmtCheck->num_rows === 0) {
+            $code = 'SCH-' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+            $stmtIns->bind_param("ss", $sName, $code);
+            $stmtIns->execute();
+            $nextNum++;
         }
     }
+
+    @file_put_contents($seedFlag, date('Y-m-d H:i:s'));
 }
 ?>
