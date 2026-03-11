@@ -19,6 +19,25 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['admin_role'] ?? '') !== 'super_
     exit;
 }
 
+// Handle clear action
+$action = $_POST['action'] ?? 'seed';
+if ($action === 'clear') {
+    $conn->begin_transaction();
+    try {
+        // Delete attendance records for seeded students (QR starts with STU-)
+        $conn->query("DELETE a FROM attendance a JOIN students s ON a.person_id = s.id AND a.person_type='student' WHERE s.qr_code LIKE 'STU-%'");
+        // Delete seeded students
+        $r = $conn->query("DELETE FROM students WHERE qr_code LIKE 'STU-%'");
+        $deleted = $conn->affected_rows;
+        $conn->commit();
+        echo json_encode(['success' => true, 'deleted' => $deleted]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 $count_per_school = max(1, min(50, (int)($_POST['count'] ?? 10)));
 
 // Filipino first/last names for realistic sample data

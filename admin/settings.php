@@ -424,6 +424,9 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                 <button type="button" class="btn btn-primary" id="seedBtn" onclick="seedStudents()" style="padding:9px 20px;white-space:nowrap;background:#8b5cf6;">
                     <i class="fas fa-wand-magic-sparkles"></i> Generate Sample Students
                 </button>
+                <button type="button" class="btn" id="clearSeedBtn" onclick="clearSeedData()" style="padding:9px 20px;white-space:nowrap;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;cursor:pointer;">
+                    <i class="fas fa-trash"></i> Clear Sample Data
+                </button>
             </div>
             <div id="seedResult" style="display:none;margin-top:16px;"></div>
         </div>
@@ -504,6 +507,36 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
         document.getElementById('cpAdminId').value = id;
         document.getElementById('cpUsername').textContent = username;
         document.getElementById('changePasswordModal').classList.add('active');
+    }
+
+    function clearSeedData() {
+        if (!confirm('Delete ALL sample/demo students (QR starting with STU-)? This cannot be undone.')) return;
+        const btn = document.getElementById('clearSeedBtn');
+        const resultDiv = document.getElementById('seedResult');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Removing sample data...</div>';
+        fetch('../api/seed_students.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/x-www-form-urlencoded'},
+            body: 'action=clear'
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Clear Sample Data';
+            if (data.success) {
+                resultDiv.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fas fa-check-circle"></i> <strong>${data.deleted}</strong> sample student(s) removed.</div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-times-circle"></i> ${data.error || 'Failed to clear.'}</div>`;
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Clear Sample Data';
+            resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-times-circle"></i> Error: ${err.message}</div>`;
+        });
     }
 
     function seedStudents() {
