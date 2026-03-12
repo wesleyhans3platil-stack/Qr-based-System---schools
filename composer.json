@@ -1,0 +1,11 @@
+{
+    "name": "qr-attendance-system",
+    "description": "QR-Based Attendance Monitoring System",
+    "type": "project",
+    "require": {
+        "php": ">=8.0"
+    },
+    "scripts": {
+        "start": "php -S 0.0.0.0:${PORT:-8080} router.php"
+    }
+}
