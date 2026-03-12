@@ -249,7 +249,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .si{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
         .si-g{background:#ecfdf5;color:var(--green)}.si-r{background:#fef2f2;color:var(--red)}.si-a{background:#fffbeb;color:var(--amber)}
         .si-b{background:#eff6ff;color:var(--blue)}.si-t{background:#f0fdfa;color:var(--teal)}.si-p{background:#f5f3ff;color:#7c3aed}
-        .sv{font-size:1.25rem;font-weight:800;letter-spacing:-.5px;line-height:1}
+        .sv{font-size:1.25rem;font-weight:800;letter-spacing:-.5px;line-height:1;transition:color .3s}
         .sv small{font-size:.65rem;font-weight:600;color:var(--on-surface-v)}
         .sl{font-size:.58rem;color:var(--on-surface-v);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
 
@@ -376,7 +376,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             </div>
         </div>
         <div class="date-row">
-            <?php if ($is_today): ?><div class="live-dot"></div><div class="date-chip"><i class="fas fa-clock"></i>Live — <?= date('D, M j') ?></div>
+            <?php if ($is_today): ?><div class="live-dot"></div><div class="date-chip"><i class="fas fa-bolt"></i>Real-time — <?= date('D, M j') ?></div>
             <?php else: ?><div class="date-chip"><i class="fas fa-calendar"></i><?= date('D, M j, Y', strtotime($filter_date)) ?></div><?php endif; ?>
             <input type="date" class="date-input" value="<?= htmlspecialchars($filter_date) ?>" onchange="applyDate(this.value)">
         </div>
@@ -404,36 +404,36 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                 <svg viewBox="0 0 120 120">
                     <circle class="ring-bg" cx="60" cy="60" r="52"/>
                     <?php $circ=2*M_PI*52; $off=$circ-($attendance_rate/100)*$circ; $rc=$attendance_rate>=80?'#059669':($attendance_rate>=50?'#d97706':'#dc2626'); ?>
-                    <circle class="ring-fg" cx="60" cy="60" r="52" stroke="<?=$rc?>" stroke-dasharray="<?=$circ?>" stroke-dashoffset="<?=$off?>"/>
+                    <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52" stroke="<?=$rc?>" stroke-dasharray="<?=$circ?>" stroke-dashoffset="<?=$off?>"/>
                 </svg>
                 <div class="ring-ctr">
-                    <div class="ring-pct"><?=$attendance_rate?>%</div>
+                    <div class="ring-pct" id="ringPct"><?=$attendance_rate?>%</div>
                     <div class="ring-lbl">Attendance</div>
                 </div>
             </div>
-            <div class="ring-info"><b><?=$timed_in_today?></b> of <b><?=$total_students?></b> students present</div>
+            <div class="ring-info"><b id="ringPresent"><?=$timed_in_today?></b> of <b id="ringTotal"><?=$total_students?></b> students present</div>
         </div>
 
         <!-- Stats Row 1: Students -->
         <div class="sg fade-in">
-            <div class="sc"><div class="si si-b"><i class="fas fa-users"></i></div><div><div class="sv"><?=$total_students?></div><div class="sl">Total Students</div></div></div>
-            <div class="sc"><div class="si si-g"><i class="fas fa-user-check"></i></div><div><div class="sv"><?=$timed_in_today?></div><div class="sl">Present</div></div></div>
-            <div class="sc"><div class="si si-r"><i class="fas fa-user-xmark"></i></div><div><div class="sv"><?=$absent_today?></div><div class="sl">Absent</div></div></div>
-            <div class="sc"><div class="si si-a"><i class="fas fa-triangle-exclamation"></i></div><div><div class="sv"><?=$flag_count?></div><div class="sl">2-Day Flagged</div></div></div>
+            <div class="sc"><div class="si si-b"><i class="fas fa-users"></i></div><div><div class="sv" data-stat="total_students"><?=$total_students?></div><div class="sl">Total Students</div></div></div>
+            <div class="sc"><div class="si si-g"><i class="fas fa-user-check"></i></div><div><div class="sv" data-stat="timed_in_today"><?=$timed_in_today?></div><div class="sl">Present</div></div></div>
+            <div class="sc"><div class="si si-r"><i class="fas fa-user-xmark"></i></div><div><div class="sv" data-stat="absent_today"><?=$absent_today?></div><div class="sl">Absent</div></div></div>
+            <div class="sc"><div class="si si-a"><i class="fas fa-triangle-exclamation"></i></div><div><div class="sv" data-stat="flag_count"><?=$flag_count?></div><div class="sl">2-Day Flagged</div></div></div>
         </div>
 
         <!-- Stats Row 2: Teachers -->
         <div class="sg fade-in">
-            <div class="sc"><div class="si si-b"><i class="fas fa-chalkboard-teacher"></i></div><div><div class="sv"><?=$total_teachers?></div><div class="sl">Total Teachers</div></div></div>
-            <div class="sc"><div class="si si-g"><i class="fas fa-user-check"></i></div><div><div class="sv"><?=$teachers_in?></div><div class="sl">Teachers Present</div></div></div>
-            <div class="sc"><div class="si si-r"><i class="fas fa-user-times"></i></div><div><div class="sv" style="color:var(--red)"><?=$teachers_absent?></div><div class="sl">Teachers Absent</div></div></div>
-            <div class="sc"><div class="si si-t"><i class="fas fa-chart-pie"></i></div><div><div class="sv"><?=$teacher_att_pct?>%</div><div class="sl">Teacher Rate</div></div></div>
+            <div class="sc"><div class="si si-b"><i class="fas fa-chalkboard-teacher"></i></div><div><div class="sv" data-stat="total_teachers"><?=$total_teachers?></div><div class="sl">Total Teachers</div></div></div>
+            <div class="sc"><div class="si si-g"><i class="fas fa-user-check"></i></div><div><div class="sv" data-stat="teachers_in"><?=$teachers_in?></div><div class="sl">Teachers Present</div></div></div>
+            <div class="sc"><div class="si si-r"><i class="fas fa-user-times"></i></div><div><div class="sv" data-stat="teachers_absent" style="color:var(--red)"><?=$teachers_absent?></div><div class="sl">Teachers Absent</div></div></div>
+            <div class="sc"><div class="si si-t"><i class="fas fa-chart-pie"></i></div><div><div class="sv" data-stat="teacher_att_pct"><?=$teacher_att_pct?>%</div><div class="sl">Teacher Rate</div></div></div>
         </div>
 
         <!-- Extra: Schools + Timed Out -->
         <div class="sg fade-in">
-            <div class="sc"><div class="si si-p"><i class="fas fa-school"></i></div><div><div class="sv"><?=$total_schools?></div><div class="sl">Schools</div></div></div>
-            <div class="sc"><div class="si si-t"><i class="fas fa-arrow-right-from-bracket"></i></div><div><div class="sv"><?=$timed_out_today?></div><div class="sl">Timed Out</div></div></div>
+            <div class="sc"><div class="si si-p"><i class="fas fa-school"></i></div><div><div class="sv" data-stat="total_schools"><?=$total_schools?></div><div class="sl">Schools</div></div></div>
+            <div class="sc"><div class="si si-t"><i class="fas fa-arrow-right-from-bracket"></i></div><div><div class="sv" data-stat="timed_out_today"><?=$timed_out_today?></div><div class="sl">Timed Out</div></div></div>
         </div>
 
         <!-- ═══ WEEKLY TREND CHART ═══ -->
@@ -446,7 +446,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         <div class="sec-h"><i class="fas fa-ranking-star"></i> Schools by Attendance Rate</div>
         <div class="exp-card fade-in">
             <button class="exp-toggle" id="rankToggle" onclick="toggleExp('rank')">
-                <span class="exp-toggle-text">Top <?= min(count($schools_ranked), 10) ?> Schools</span>
+                <span class="exp-toggle-text" id="rankTitle">Top <?= min(count($schools_ranked), 10) ?> Schools</span>
                 <div class="exp-arrow"><i class="fas fa-chevron-down"></i></div>
             </button>
             <div class="exp-list" id="rankList">
@@ -474,7 +474,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         <?php endif; ?>
 
         <!-- ═══ SCHOOL BREAKDOWN ═══ -->
-        <div class="sec-h"><i class="fas fa-school"></i> School Breakdown <span class="cnt"><?= count($school_breakdown) ?></span></div>
+        <div class="sec-h"><i class="fas fa-school"></i> School Breakdown <span class="cnt" id="schoolCount"><?= count($school_breakdown) ?></span></div>
+        <div id="schoolBreakdown">
         <?php if (empty($school_breakdown)): ?>
             <div class="sch-c" style="text-align:center;color:var(--on-surface-v);padding:24px;">No schools found.</div>
         <?php else: foreach ($school_breakdown as $i => $sb): ?>
@@ -492,12 +493,13 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             </div>
         </div>
         <?php endforeach; endif; ?>
+        </div>
 
         <!-- ═══ 2-DAY FLAGGED ═══ -->
-        <div class="sec-h"><i class="fas fa-exclamation-triangle" style="color:var(--amber)"></i> 2-Day Consecutive Absences <span class="cnt" style="background:var(--amber-c);color:var(--amber)"><?=$flag_count?></span></div>
+        <div class="sec-h"><i class="fas fa-exclamation-triangle" style="color:var(--amber)"></i> 2-Day Consecutive Absences <span class="cnt" id="flagBadge" style="background:var(--amber-c);color:var(--amber)"><?=$flag_count?></span></div>
         <div class="exp-card fade-in">
             <button class="exp-toggle" id="flagToggle" onclick="toggleExp('flag')">
-                <span class="exp-toggle-text"><?= $flag_count > 0 ? $flag_count . ' student' . ($flag_count > 1 ? 's' : '') . ' flagged' : 'No flags — all good!' ?></span>
+                <span class="exp-toggle-text" id="flagTitle"><?= $flag_count > 0 ? $flag_count . ' student' . ($flag_count > 1 ? 's' : '') . ' flagged' : 'No flags — all good!' ?></span>
                 <?php if ($flag_count > 0): ?><div class="exp-arrow"><i class="fas fa-chevron-down"></i></div><?php endif; ?>
             </button>
             <?php if ($flag_count > 0): ?>
@@ -527,7 +529,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                 <div style="text-align:center;padding:16px;color:var(--on-surface-v);font-size:.78rem;">No data.</div>
             <?php else: ?>
             <button class="exp-toggle" id="teacherToggle" onclick="toggleExp('teacher')">
-                <span class="exp-toggle-text"><?= $teachers_in ?> of <?= $total_teachers ?> present (<?= $teacher_att_pct ?>%)</span>
+                <span class="exp-toggle-text" id="teacherTitle"><?= $teachers_in ?> of <?= $total_teachers ?> present (<?= $teacher_att_pct ?>%)</span>
                 <div class="exp-arrow"><i class="fas fa-chevron-down"></i></div>
             </button>
             <div class="exp-list" id="teacherList">
@@ -599,39 +601,232 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         t.classList.toggle('open');
     }
 
-    // ═══ Smooth Refresh (no flicker) ═══
-    let isRefreshing = false;
-    async function smoothRefresh() {
-        if (isRefreshing) return;
-        isRefreshing = true;
-        const icon = document.getElementById('refreshIcon');
-        icon.classList.add('fa-spin');
-        try {
-            const resp = await fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            const html = await resp.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newContent = doc.getElementById('mainContent');
-            if (newContent) {
-                const old = document.getElementById('mainContent');
-                old.style.opacity = '0.6';
-                old.style.transition = 'opacity .15s';
-                await new Promise(r => setTimeout(r, 150));
-                old.innerHTML = newContent.innerHTML;
-                old.style.opacity = '1';
-                // Re-init chart
-                initChart();
-            }
-            showToast('Updated', true);
-        } catch (e) {
-            showToast('Refresh failed', false);
-        }
-        icon.classList.remove('fa-spin');
-        isRefreshing = false;
+    // ═══ REAL-TIME ENGINE ═══
+    const POLL_INTERVAL = 10000; // 10 seconds
+    let isPolling = false;
+    let pollTimer = null;
+    const CIRC = <?= json_encode(2 * M_PI * 52) ?>;
+
+    function getApiUrl() {
+        const p = new URLSearchParams(location.search);
+        let url = 'api/dashboard_data.php';
+        const params = [];
+        if (p.get('date')) params.push('date=' + encodeURIComponent(p.get('date')));
+        if (p.get('school')) params.push('school=' + encodeURIComponent(p.get('school')));
+        return params.length ? url + '?' + params.join('&') : url;
     }
 
-    // Auto-refresh every 60s (smooth)
-    setInterval(smoothRefresh, 60000);
+    // Animate number change
+    function animateValue(el, newVal) {
+        if (!el) return;
+        const text = el.textContent.trim();
+        const hasPct = text.endsWith('%');
+        const oldNum = parseFloat(text) || 0;
+        const newNum = parseFloat(newVal) || 0;
+        if (oldNum === newNum) return;
+
+        // Brief highlight
+        el.style.transition = 'color .2s';
+        el.style.color = newNum > oldNum ? 'var(--green)' : (newNum < oldNum ? 'var(--red)' : '');
+
+        const steps = 12;
+        const inc = (newNum - oldNum) / steps;
+        let step = 0;
+        const timer = setInterval(() => {
+            step++;
+            const v = step >= steps ? newNum : oldNum + inc * step;
+            el.textContent = (Number.isInteger(newNum) ? Math.round(v) : v.toFixed(1)) + (hasPct ? '%' : '');
+            if (step >= steps) {
+                clearInterval(timer);
+                // Restore color after animation
+                setTimeout(() => { el.style.color = ''; }, 600);
+            }
+        }, 25);
+    }
+
+    function rateColor(rate) {
+        return rate >= 80 ? 'var(--green)' : (rate >= 50 ? 'var(--amber)' : 'var(--red)');
+    }
+
+    function rateHex(rate) {
+        return rate >= 80 ? '#059669' : (rate >= 50 ? '#d97706' : '#dc2626');
+    }
+
+    function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    // Update ring chart
+    function updateRing(rate, present, total) {
+        const fg = document.getElementById('ringFg');
+        const pctEl = document.getElementById('ringPct');
+        const presEl = document.getElementById('ringPresent');
+        const totEl = document.getElementById('ringTotal');
+        if (fg) {
+            const off = CIRC - (rate / 100) * CIRC;
+            fg.style.transition = 'stroke-dashoffset .8s ease, stroke .4s';
+            fg.setAttribute('stroke-dashoffset', off);
+            fg.setAttribute('stroke', rateHex(rate));
+        }
+        if (pctEl) animateValue(pctEl, rate);
+        if (presEl) presEl.textContent = present;
+        if (totEl) totEl.textContent = total;
+    }
+
+    // Update stat cards
+    function updateStats(stats) {
+        document.querySelectorAll('[data-stat]').forEach(el => {
+            const key = el.dataset.stat;
+            if (stats[key] !== undefined) {
+                const hasPct = key === 'teacher_att_pct';
+                animateValue(el, stats[key]);
+            }
+        });
+    }
+
+    // Update ranking list
+    function updateRanking(ranked) {
+        const list = document.getElementById('rankList');
+        const title = document.getElementById('rankTitle');
+        if (!list) return;
+        if (title) title.textContent = 'Top ' + Math.min(ranked.length, 10) + ' Schools';
+        let html = '';
+        ranked.forEach((s, i) => {
+            html += '<div class="rank-item">'
+                + '<div class="rank-num ' + (i < 3 ? 'top' : 'reg') + '">' + (i + 1) + '</div>'
+                + '<div style="flex:1;min-width:0">'
+                + '<div class="rank-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(s.name) + '</div>'
+                + '<div class="rank-sub">' + s.present + ' of ' + s.enrolled + '</div></div>'
+                + '<div class="rank-pct" style="color:' + rateColor(s.rate) + '">' + s.rate + '%</div></div>';
+        });
+        list.innerHTML = html;
+    }
+
+    // Update school breakdown
+    function updateSchools(schools) {
+        const container = document.getElementById('schoolBreakdown');
+        const countEl = document.getElementById('schoolCount');
+        if (!container) return;
+        if (countEl) countEl.textContent = schools.length;
+        if (!schools.length) {
+            container.innerHTML = '<div class="sch-c" style="text-align:center;color:var(--on-surface-v);padding:24px;">No schools found.</div>';
+            return;
+        }
+        let html = '';
+        schools.forEach(sb => {
+            html += '<div class="sch-c">'
+                + '<div class="sch-top"><div class="sch-n">' + escHtml(sb.name) + '</div><span class="sch-code">' + escHtml(sb.code) + '</span></div>'
+                + '<div class="sch-bar"><div class="fill" style="width:' + sb.rate + '%;background:' + rateColor(sb.rate) + '"></div></div>'
+                + '<div class="sch-row">'
+                + '<div class="sch-st"><div class="v" style="color:var(--green)">' + sb.present + '</div><div class="l">Present</div></div>'
+                + '<div class="sch-st"><div class="v" style="color:var(--red)">' + sb.absent + '</div><div class="l">Absent</div></div>'
+                + '<div class="sch-st"><div class="v" style="color:' + rateColor(sb.rate) + '">' + sb.rate + '%</div><div class="l">Rate</div></div>'
+                + '<div class="sch-st"><div class="v" style="color:var(--blue)">' + sb.teachers_present + '/' + sb.total_teachers + '</div><div class="l">Teachers</div></div>'
+                + '</div></div>';
+        });
+        container.innerHTML = html;
+    }
+
+    // Update flagged students
+    function updateFlagged(flagged, count) {
+        const badge = document.getElementById('flagBadge');
+        const title = document.getElementById('flagTitle');
+        const list = document.getElementById('flagList');
+        if (badge) badge.textContent = count;
+        if (title) title.textContent = count > 0 ? count + ' student' + (count > 1 ? 's' : '') + ' flagged' : 'No flags — all good!';
+        if (!list) return;
+        if (!count) {
+            list.innerHTML = '<div class="flag-empty"><i class="fas fa-check-circle"></i>All students have been attending.</div>';
+            return;
+        }
+        let html = '';
+        flagged.forEach(fs => {
+            const days = fs.total_absent || 2;
+            html += '<div class="flag-row"><div style="min-width:0;flex:1">'
+                + '<div class="flag-name">' + escHtml(fs.name) + '</div>'
+                + '<div class="flag-meta">LRN: ' + escHtml(fs.lrn) + ' · ' + escHtml(fs.grade_name || '') + ' — ' + escHtml(fs.section_name || '') + '</div></div>'
+                + '<div style="text-align:right;flex-shrink:0"><span class="flag-code">' + escHtml(fs.school_code || '') + '</span>'
+                + '<div class="flag-days" style="color:' + (days >= 5 ? 'var(--red)' : 'var(--amber)') + '">' + days + ' day' + (days != 1 ? 's' : '') + '</div></div></div>';
+        });
+        list.innerHTML = html;
+    }
+
+    // Update teacher attendance
+    function updateTeachers(schools, teachersIn, totalTeachers, pct) {
+        const title = document.getElementById('teacherTitle');
+        const list = document.getElementById('teacherList');
+        if (title) title.textContent = teachersIn + ' of ' + totalTeachers + ' present (' + pct + '%)';
+        if (!list) return;
+        let html = '';
+        schools.forEach(sb => {
+            const tp = sb.total_teachers > 0 ? Math.round((sb.teachers_present / sb.total_teachers) * 100) + '%' : '—';
+            const color = sb.total_teachers > 0 && sb.teachers_present == sb.total_teachers ? 'var(--green)' : 'var(--amber)';
+            html += '<div class="tch-row"><div style="min-width:0;flex:1">'
+                + '<div class="tch-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(sb.name) + '</div>'
+                + '<div class="tch-sub">' + sb.teachers_present + ' of ' + sb.total_teachers + ' present</div></div>'
+                + '<div class="tch-pct" style="color:' + color + '">' + tp + '</div></div>';
+        });
+        list.innerHTML = html;
+    }
+
+    // Update chart
+    function updateChart(trend) {
+        if (!trendChart) return;
+        trendChart.data.labels = trend.map(d => d.date);
+        trendChart.data.datasets[0].data = trend.map(d => d.present);
+        trendChart.data.datasets[1].data = trend.map(d => d.absent);
+        trendChart.update('none'); // no animation for smooth feel
+    }
+
+    // ═══ Main Poll ═══
+    async function pollData() {
+        if (isPolling) return;
+        isPolling = true;
+        try {
+            const resp = await fetch(getApiUrl(), { cache: 'no-store' });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            const s = data.stats;
+
+            // Update all sections
+            updateRing(s.attendance_rate, s.timed_in_today, s.total_students);
+            updateStats(s);
+            updateRanking(data.schools_ranked);
+            updateSchools(data.school_breakdown);
+            updateFlagged(data.flagged_students, s.flag_count);
+            updateTeachers(data.school_breakdown, s.teachers_in, s.total_teachers, s.teacher_att_pct);
+            updateChart(data.trend);
+        } catch (e) {
+            // Silent fail — next poll will retry
+            console.warn('Poll error:', e);
+        }
+        isPolling = false;
+    }
+
+    // Manual refresh with visual feedback
+    async function smoothRefresh() {
+        const icon = document.getElementById('refreshIcon');
+        icon.classList.add('fa-spin');
+        await pollData();
+        icon.classList.remove('fa-spin');
+        showToast('Updated', true);
+    }
+
+    // Start real-time polling
+    pollTimer = setInterval(pollData, POLL_INTERVAL);
+
+    // Pause when tab hidden, resume when visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        } else {
+            pollData(); // immediate refresh on return
+            pollTimer = setInterval(pollData, POLL_INTERVAL);
+        }
+    });
 
     // ═══ Check Absences ═══
     async function checkAbsences() {
