@@ -1,13 +1,13 @@
 FROM php:8.2-cli
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev libonig-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpng-dev libjpeg62-turbo-dev libfreetype6-dev libzip-dev libonig-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions needed by the app
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install mysqli pdo pdo_mysql gd zip mbstring
+    && docker-php-ext-install -j$(nproc) mysqli pdo pdo_mysql gd zip mbstring
 
 # PHP settings
 RUN { \
@@ -27,6 +27,6 @@ COPY . .
 RUN mkdir -p assets/uploads/logos \
     && chmod -R 777 assets/uploads config
 
-EXPOSE ${PORT:-8080}
+EXPOSE 8080
 
-CMD php -S 0.0.0.0:${PORT:-8080} router.php
+CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8080} router.php"]
