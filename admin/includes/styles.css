@@ -810,6 +810,7 @@ select.form-control {
     .main-content {
         margin-left: 0;
         padding: 24px 20px;
+        padding-bottom: 80px;
     }
 
     .form-row, .form-row-3 {
@@ -873,6 +874,16 @@ select.form-control {
     .top-bar-right form input,
     .top-bar-right form select {
         width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .filters-bar {
+        padding: 14px 16px;
+        gap: 10px;
+    }
+
+    .filter-group {
+        width: 100%;
     }
 
     .table-wrapper {

@@ -134,7 +134,7 @@ $grades = []; $r = $conn->query("SELECT id, name FROM grade_levels ORDER BY id")
 
         <div class="card" style="padding:0;">
             <div class="table-wrapper">
-                <table>
+                <table class="responsive-stack-table">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -151,21 +151,21 @@ $grades = []; $r = $conn->query("SELECT id, name FROM grade_levels ORDER BY id")
                             <tr><td colspan="<?= $filter_type === 'student' ? 7 : 6 ?>"><div class="empty-state"><i class="fas fa-clipboard-list"></i><h3>No records for this date</h3></div></td></tr>
                         <?php else: foreach ($records as $rec): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($rec['person_name'] ?? 'Unknown') ?></strong></td>
-                                <td><code style="color:var(--primary);"><?= htmlspecialchars($rec['lrn'] ?? $rec['employee_id'] ?? '') ?></code></td>
-                                <td><span class="badge badge-info"><?= htmlspecialchars($rec['school_name'] ?? '') ?></span></td>
-                                <?php if ($filter_type === 'student'): ?><td><?= htmlspecialchars(($rec['grade_name'] ?? '') . ' — ' . ($rec['section_name'] ?? '')) ?></td><?php endif; ?>
-                                <td>
+                                <td data-label="Name"><strong><?= htmlspecialchars($rec['person_name'] ?? 'Unknown') ?></strong></td>
+                                <td data-label="<?= $filter_type === 'student' ? 'LRN' : 'Employee ID' ?>"><code style="color:var(--primary);"><?= htmlspecialchars($rec['lrn'] ?? $rec['employee_id'] ?? '') ?></code></td>
+                                <td data-label="School"><span class="badge badge-info"><?= htmlspecialchars($rec['school_name'] ?? '') ?></span></td>
+                                <?php if ($filter_type === 'student'): ?><td data-label="Grade/Section"><?= htmlspecialchars(($rec['grade_name'] ?? '') . ' — ' . ($rec['section_name'] ?? '')) ?></td><?php endif; ?>
+                                <td data-label="Time In">
                                     <?php if ($rec['time_in']): ?>
                                         <span style="color:var(--success);font-weight:600;"><i class="fas fa-sign-in-alt"></i> <?= date('h:i A', strtotime($rec['time_in'])) ?></span>
                                     <?php else: ?>—<?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-label="Time Out">
                                     <?php if ($rec['time_out']): ?>
                                         <span style="color:var(--info);font-weight:600;"><i class="fas fa-sign-out-alt"></i> <?= date('h:i A', strtotime($rec['time_out'])) ?></span>
                                     <?php else: ?><span class="text-muted">—</span><?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <?php
                                     $status_class = ['present' => 'badge-success', 'late' => 'badge-warning', 'absent' => 'badge-error'];
                                     $st = strtolower($rec['status']);

@@ -26,42 +26,41 @@ if ($isApp || $isMobileDevice):
 <style>
     .app-bottom-nav {
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
-        background: #fffffe;
-        border-top: 1px solid rgba(0,0,0,0.06);
-        padding: 0 4px calc(0px + env(safe-area-inset-bottom, 0px));
-        height: calc(72px + env(safe-area-inset-bottom, 0px));
-        display: flex; justify-content: space-around; align-items: stretch;
+        background: rgba(255,255,255,0.96);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-top: 1px solid rgba(226,232,240,0.95);
+        padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+        display: flex; justify-content: space-around; align-items: center;
         font-family: 'Inter', -apple-system, sans-serif;
+        box-shadow: 0 -8px 28px rgba(15,23,42,0.08);
     }
     .app-bottom-nav a {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 2px; font-size: 0.55rem; font-weight: 600; color: #49454f;
-        text-decoration: none; padding: 0 8px; position: relative; flex: 1;
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+        font-size: 0.72rem; font-weight: 700; color: #475569; text-decoration: none;
+        padding: 10px 12px; border-radius: 18px; transition: all 0.25s ease;
+        position: relative;
+        min-width: 64px;
     }
-    .app-bottom-nav a i { font-size: 1.05rem; z-index: 1; transition: transform 0.15s; }
-    .app-bottom-nav a span { z-index: 1; }
-    .app-bottom-nav a .pill {
-        position: absolute; top: 10px; width: 48px; height: 24px;
-        border-radius: 12px; background: #c4eed0; opacity: 0; transition: opacity 0.15s;
+    .app-bottom-nav a.active {
+        color: #0f172a;
+        background: #d8f3df;
     }
-    .app-bottom-nav a.active { color: #022c22; }
-    .app-bottom-nav a.active .pill { opacity: 1; }
-    .app-bottom-nav a:active i { transform: scale(0.85); }
-    body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+    .app-bottom-nav a i { font-size: 1.4rem; transition: transform 0.2s; }
+    .app-bottom-nav a:active i { transform: scale(0.9); }
+    body { padding-bottom: 94px !important; }
     .sidebar, .sidebar-overlay, .mobile-menu-toggle { display: none !important; }
-    .main-content { margin-left: 0 !important; padding: 18px 14px !important; }
+    .main-content { margin-left: 0 !important; }
     @media (min-width: 1025px) {
-        .app-bottom-nav { display: none !important; }
+        .app-bottom-nav { display: none; }
         body { padding-bottom: 0 !important; }
-        .sidebar { display: flex !important; }
-        .main-content { margin-left: var(--sidebar-width) !important; padding: 32px 36px !important; }
     }
 </style>
 <nav class="app-bottom-nav">
-    <a href="<?= htmlspecialchars($dashboardHref) ?>" class="<?= $current === 'dashboard' || $current === 'app_dashboard' || $current === 'sds_dashboard' || $current === 'asds_dashboard' || $current === 'principal_dashboard' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
-    <a href="/admin/attendance.php" class="<?= $current === 'attendance' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-clipboard-check"></i><span>Attendance</span></a>
-    <a href="/admin/school_browser.php" class="<?= $current === 'school_browser' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-building-columns"></i><span>Schools</span></a>
-    <a href="/admin/reports.php" class="<?= $current === 'reports' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-file-lines"></i><span>Reports</span></a>
-    <a href="/Qrscanattendance.php" class="<?= $current === 'Qrscanattendance' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-qrcode"></i><span>Scanner</span></a>
+    <a href="<?= htmlspecialchars($dashboardHref) ?>" class="<?= $current === 'dashboard' || $current === 'app_dashboard' || $current === 'sds_dashboard' || $current === 'asds_dashboard' || $current === 'principal_dashboard' ? 'active' : '' ?>"><i class="fas fa-chart-pie"></i> Dashboard</a>
+    <a href="/admin/attendance.php" class="<?= $current === 'attendance' ? 'active' : '' ?>"><i class="fas fa-clipboard-check"></i> Attendance</a>
+    <a href="/admin/school_browser.php" class="<?= $current === 'school_browser' ? 'active' : '' ?>"><i class="fas fa-building-columns"></i> Schools</a>
+    <a href="/admin/reports.php" class="<?= $current === 'reports' ? 'active' : '' ?>"><i class="fas fa-file-lines"></i> Reports</a>
+    <a href="/Qrscanattendance.php" class="<?= $current === 'Qrscanattendance' ? 'active' : '' ?>"><i class="fas fa-qrcode"></i> Scanner</a>
 </nav>
 <?php endif; ?>

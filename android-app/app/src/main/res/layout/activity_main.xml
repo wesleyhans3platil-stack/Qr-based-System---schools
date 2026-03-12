@@ -6,58 +6,71 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     android:background="@color/white">
 
     <!-- Pull-to-Refresh + WebView -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
 
         <WebView
             android:id="@+id/webView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:overScrollMode="never" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Green progress bar -->
+    <!-- Green progress bar pinned to top under status bar -->
     <ProgressBar
         android:id="@+id/progressBar"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="match_parent"
         android:layout_height="3dp"
+        android:layout_gravity="top"
         android:progressTint="@color/green_500"
         android:progressBackgroundTint="@android:color/transparent"
         android:max="100"
         android:visibility="gone" />
 
     <!-- ═══ Bold Offline Screen ═══ -->
-    <LinearLayout
+    <ScrollView
         android:id="@+id/offlineView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
+        android:fillViewport="true"
         android:background="@color/bg_primary"
         android:visibility="gone"
-        android:padding="40dp">
+        android:fitsSystemWindows="true">
 
-        <!-- Orange circular accent behind icon -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="60dp"
+        android:paddingBottom="40dp">
+
+        <!-- Circular accent behind icon -->
         <FrameLayout
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_marginBottom="28dp">
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginBottom="24dp">
 
             <View
-                android:layout_width="120dp"
-                android:layout_height="120dp"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:background="@drawable/bg_logo_container"
                 android:alpha="0.1" />
 
             <ImageView
-                android:layout_width="64dp"
-                android:layout_height="64dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_offline"
                 android:contentDescription="Offline"
@@ -77,7 +90,7 @@
             android:layout_marginBottom="10dp" />
 
         <TextView
-            android:layout_width="280dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Check your Wi-Fi or mobile data and make sure the server is running."
             android:textSize="14sp"
@@ -85,7 +98,8 @@
             android:fontFamily="sans-serif"
             android:gravity="center"
             android:lineSpacingMultiplier="1.5"
-            android:layout_marginBottom="36dp" />
+            android:maxWidth="300dp"
+            android:layout_marginBottom="32dp" />
 
         <!-- Retry button -->
         <Button
@@ -117,5 +131,6 @@
             android:focusable="true" />
 
     </LinearLayout>
+    </ScrollView>
 
 </FrameLayout>

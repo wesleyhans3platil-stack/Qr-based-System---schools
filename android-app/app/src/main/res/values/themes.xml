@@ -9,8 +9,9 @@
         <item name="android:navigationBarColor">@color/white</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowBackground">@color/bg_primary</item>
+        <item name="android:windowBackground">@color/white</item>
         <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <!-- Splash Theme — emerald green gradient -->
@@ -20,6 +21,7 @@
         <item name="android:navigationBarColor">@color/green_700</item>
         <item name="android:windowBackground">@color/green_700</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <!-- Login Theme — fresh green background with clean cards -->
@@ -31,6 +33,7 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowBackground">@color/bg_primary</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <!-- Rounded input style -->

@@ -109,195 +109,129 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
 <html lang="en">
 <head>
     <?php include 'includes/header.php'; ?>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-                colors: {
-                    primary: { DEFAULT: '#4338ca', dark: '#3730a3', light: '#6366f1' },
-                }
-            }
-        }
-    }
-    </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .tw-card { @apply bg-white rounded-2xl shadow-sm border border-slate-200 p-6; }
-            .tw-progress-bar { @apply h-2.5 rounded-full overflow-hidden flex bg-slate-200; }
-            .tw-progress-fill { @apply h-full transition-all duration-500 ease-out; }
-        }
+    <style>
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .dashboard-grid .card.full { grid-column: span 2; }
+        .school-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .school-row:last-child { border-bottom: none; }
+        .school-info { display: flex; align-items: center; gap: 14px; }
+        .school-info .sch-code { background: rgba(67,56,202,0.1); color: var(--primary); padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; font-weight: 700; min-width: 60px; text-align: center; }
+        .school-stats { display: flex; gap: 20px; align-items: center; }
+        .school-stats .ss { text-align: center; }
+        .school-stats .ss .val { font-size: 1.1rem; font-weight: 800; }
+        .school-stats .ss .lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+        .progress-bar { width: 120px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: flex; }
+        .progress-bar .fill { height: 100%; transition: width 0.5s ease; }
+        .flag-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .flag-item:last-child { border-bottom: none; }
+        @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .dashboard-grid .card.full { grid-column: span 1; } }
     </style>
 </head>
 <body>
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="main-content">
-        <!-- Welcome Banner -->
-        <div class="relative overflow-hidden bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-600 text-white rounded-2xl p-8 mb-7 shadow-lg">
-            <div class="absolute -right-12 -top-12 w-52 h-52 bg-white/10 rounded-full"></div>
-            <div class="absolute right-20 bottom-[-30px] w-32 h-32 bg-white/5 rounded-full"></div>
-            <div class="relative z-10">
-                <h2 class="text-2xl font-bold mb-1">Welcome back, <?= htmlspecialchars($_SESSION['admin_full_name'] ?? 'Super Admin') ?> 👋</h2>
-                <p class="text-indigo-100 text-sm">Here is your division-wide attendance overview for <?= date('l, F j, Y', strtotime($filter_date)) ?></p>
-            </div>
-        </div>
-
-        <!-- Page Header + Filters -->
-        <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fas fa-chart-pie text-indigo-600"></i> Division Dashboard
-                </h1>
-                <p class="text-slate-500 text-sm mt-1">Real-time attendance monitoring</p>
+                <h1><i class="fas fa-chart-pie" style="color:var(--primary);margin-right:8px;"></i> Division Dashboard</h1>
+                <p>Real-time attendance monitoring — <?= date('l, F j, Y', strtotime($filter_date)) ?></p>
             </div>
-            <form method="GET" class="flex items-center gap-2.5 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200">
+            <form method="GET" style="display:flex;gap:10px;align-items:center;">
                 <?php if ($admin_role !== 'principal'): ?>
-                <select name="school" class="text-sm text-slate-700 bg-slate-50 border-0 rounded-lg px-3 py-2 min-w-[200px] focus:ring-2 focus:ring-indigo-500 focus:outline-none" onchange="this.form.submit()">
+                <select name="school" class="form-control" style="width:auto;min-width:200px;" onchange="this.form.submit()">
                     <option value="">All Schools</option>
                     <?php foreach ($schools_list as $sch): ?>
                         <option value="<?= $sch['id'] ?>" <?= $filter_school == $sch['id'] ? 'selected' : '' ?>><?= htmlspecialchars($sch['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <input type="date" name="date" class="text-sm text-slate-700 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="<?= $filter_date ?>" onchange="this.form.submit()">
+                <input type="date" name="date" class="form-control" style="width:auto;" value="<?= $filter_date ?>" onchange="this.form.submit()">
             </form>
         </div>
 
         <?php if (!isSchoolDay($filter_date, $conn)):
             $non_school_reason = getNonSchoolDayReason($filter_date, $conn);
         ?>
-        <!-- Non-School Day Alert -->
-        <div class="flex items-center gap-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-300 rounded-2xl px-6 py-4 mb-5">
-            <i class="fas fa-calendar-xmark text-3xl text-amber-600"></i>
+        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:14px;padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+            <i class="fas fa-calendar-xmark" style="font-size:1.8rem;color:#d97706;"></i>
             <div>
-                <strong class="text-amber-900 text-base">No Classes Today</strong>
-                <p class="text-amber-700 text-sm mt-0.5"><?= htmlspecialchars($non_school_reason ?? 'Non-school day') ?> — Attendance data shown is for reference only.</p>
+                <strong style="font-size:1rem;color:#92400e;">No Classes Today</strong>
+                <p style="margin:2px 0 0;font-size:0.85rem;color:#a16207;"><?= htmlspecialchars($non_school_reason ?? 'Non-school day') ?> — Attendance data shown is for reference only.</p>
             </div>
         </div>
         <?php endif; ?>
 
-        <!-- Summary Stat Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-7">
-            <!-- Schools -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-school text-indigo-600 text-lg"></i>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-slate-800"><?= $total_schools ?></div>
-                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Schools</div>
-                </div>
+        <!-- Summary Stats -->
+        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+            <div class="stat-card primary">
+                <div class="stat-icon primary"><i class="fas fa-school"></i></div>
+                <div class="stat-info"><h3><?= $total_schools ?></h3><span>Schools</span></div>
             </div>
-            <!-- Present -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-user-check text-emerald-600 text-lg"></i>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-slate-800"><?= $timed_in_today ?></div>
-                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Students Present</div>
-                </div>
+            <div class="stat-card success">
+                <div class="stat-icon success"><i class="fas fa-user-check"></i></div>
+                <div class="stat-info"><h3><?= $timed_in_today ?></h3><span>Students Present</span></div>
             </div>
-            <!-- Absent -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-user-times text-red-600 text-lg"></i>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-slate-800"><?= $absent_today ?></div>
-                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Students Absent</div>
-                </div>
+            <div class="stat-card error">
+                <div class="stat-icon error"><i class="fas fa-user-times"></i></div>
+                <div class="stat-info"><h3><?= $absent_today ?></h3><span>Students Absent</span></div>
             </div>
-            <!-- 2-Day Flagged -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-amber-600 text-lg"></i>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-slate-800"><?= count($flagged_students) ?></div>
-                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">2-Day Flagged</div>
-                </div>
+            <div class="stat-card warning">
+                <div class="stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-info"><h3><?= count($flagged_students) ?></h3><span>2-Day Flagged</span></div>
             </div>
-            <!-- Teachers -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-chalkboard-teacher text-blue-600 text-lg"></i>
-                </div>
-                <div>
-                    <div class="text-2xl font-extrabold text-slate-800"><?= $teachers_in ?>/<?= $total_teachers ?></div>
-                    <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Teachers Present</div>
-                </div>
+            <div class="stat-card info">
+                <div class="stat-icon info"><i class="fas fa-chalkboard-teacher"></i></div>
+                <div class="stat-info"><h3><?= $teachers_in ?>/<?= $total_teachers ?></h3><span>Teachers Present</span></div>
             </div>
         </div>
 
-        <!-- School Attendance Table -->
-        <div class="tw-card mb-6">
-            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-5">
-                <i class="fas fa-school text-indigo-600"></i> School Attendance Breakdown
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                            <th class="pb-3 pl-1">School</th>
-                            <th class="pb-3 text-center">Enrolled</th>
-                            <th class="pb-3 text-center">Present</th>
-                            <th class="pb-3 text-center">Absent</th>
-                            <th class="pb-3 text-center">Rate</th>
-                            <th class="pb-3 text-center">Teachers</th>
-                            <th class="pb-3 text-center w-36">Progress</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php if (empty($school_breakdown)): ?>
-                            <tr><td colspan="7" class="text-center py-10 text-slate-400">No schools found.</td></tr>
-                        <?php else: foreach ($school_breakdown as $sb): ?>
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="py-3.5 pl-1 font-semibold text-slate-700"><?= htmlspecialchars($sb['name']) ?></td>
-                            <td class="py-3.5 text-center text-slate-600"><?= $sb['enrolled'] ?></td>
-                            <td class="py-3.5 text-center font-bold text-emerald-600"><?= $sb['present'] ?></td>
-                            <td class="py-3.5 text-center font-bold text-red-600"><?= $sb['absent'] ?></td>
-                            <td class="py-3.5 text-center font-bold <?= $sb['rate'] >= 90 ? 'text-emerald-600' : ($sb['rate'] >= 75 ? 'text-amber-600' : 'text-red-600') ?>"><?= $sb['rate'] ?>%</td>
-                            <td class="py-3.5 text-center"><span class="text-indigo-600 font-semibold"><?= $sb['teachers_present'] ?></span><span class="text-slate-400">/<?= $sb['total_teachers'] ?></span></td>
-                            <td class="py-3.5 text-center">
-                                <div class="tw-progress-bar">
-                                    <div class="tw-progress-fill bg-emerald-500 rounded-l-full" style="width:<?= $sb['rate'] ?>%"></div>
-                                    <div class="tw-progress-fill bg-red-400 rounded-r-full" style="width:<?= 100 - $sb['rate'] ?>%"></div>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; endif; ?>
-                    </tbody>
-                </table>
+        <div class="dashboard-grid">
+            <!-- Per-School Breakdown -->
+            <div class="card full">
+                <div class="card-title"><i class="fas fa-school"></i> School Attendance Breakdown</div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>School</th><th>Enrolled</th><th>Present</th><th>Absent</th><th>Rate</th><th>Teachers</th><th>Progress</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($school_breakdown)): ?>
+                                <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No schools found.</td></tr>
+                            <?php else: foreach ($school_breakdown as $sb): ?>
+                            <tr>
+                                <td><strong><?= htmlspecialchars($sb['name']) ?></strong></td>
+                                <td><?= $sb['enrolled'] ?></td>
+                                <td><span class="text-success fw-700"><?= $sb['present'] ?></span></td>
+                                <td><span class="text-error fw-700"><?= $sb['absent'] ?></span></td>
+                                <td><span class="fw-700" style="color:<?= $sb['rate'] >= 90 ? '#16a34a' : ($sb['rate'] >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $sb['rate'] ?>%</span></td>
+                                <td><span class="text-primary"><?= $sb['teachers_present'] ?></span>/<?= $sb['total_teachers'] ?></td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="fill" style="width:<?= $sb['rate'] ?>%; background:var(--success); border-radius:3px 0 0 3px;"></div>
+                                        <div class="fill" style="width:<?= 100 - $sb['rate'] ?>%; background:var(--error); border-radius:0 3px 3px 0;"></div>
+                                </td>
+                            </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <!-- Bottom Cards Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- 2-Day Flagged Students -->
-            <div class="tw-card">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                    <i class="fas fa-exclamation-triangle text-amber-500"></i> 2-Day Consecutive Absences
-                    <span class="ml-auto inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700"><?= count($flagged_students) ?></span>
-                </h3>
-                <div class="max-h-96 overflow-y-auto space-y-1">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> 2-Day Consecutive Absences <span class="badge badge-warning" style="margin-left:8px;"><?= count($flagged_students) ?></span></div>
+                <div style="max-height:400px;overflow-y:auto;">
                     <?php if (empty($flagged_students)): ?>
-                        <div class="text-center py-10">
-                            <i class="fas fa-check-circle text-4xl text-emerald-200 mb-3"></i>
-                            <h4 class="text-emerald-600 font-semibold mb-1">No flags!</h4>
-                            <p class="text-sm text-slate-400">All students have been attending.</p>
-                        </div>
+                        <div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No flags!</h3><p>All students have been attending.</p></div>
                     <?php else: foreach ($flagged_students as $fs): ?>
-                        <div class="flex justify-between items-center px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0">
+                        <div class="flag-item">
                             <div>
-                                <div class="font-semibold text-sm text-slate-700"><?= htmlspecialchars($fs['name']) ?></div>
-                                <div class="text-xs text-slate-400 mt-0.5">LRN: <?= htmlspecialchars($fs['lrn']) ?> · <?= htmlspecialchars($fs['grade_name'] ?? '') ?> — <?= htmlspecialchars($fs['section_name'] ?? '') ?></div>
+                                <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($fs['name']) ?></div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">LRN: <?= htmlspecialchars($fs['lrn']) ?> · <?= htmlspecialchars($fs['grade_name'] ?? '') ?> — <?= htmlspecialchars($fs['section_name'] ?? '') ?></div>
                             </div>
-                            <div class="text-right flex-shrink-0 ml-3">
-                                <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[0.65rem] font-bold"><?= htmlspecialchars($fs['school_code'] ?? '') ?></span>
-                                <div class="text-[0.7rem] text-amber-600 font-semibold mt-1">2+ days</div>
+                            <div style="text-align:right;">
+                                <span class="badge badge-info" style="font-size:0.65rem;"><?= htmlspecialchars($fs['school_code'] ?? '') ?></span>
+                                <div style="font-size:0.7rem;color:var(--warning);font-weight:600;margin-top:4px;">2+ days</div>
                             </div>
                         </div>
                     <?php endforeach; endif; ?>
@@ -305,28 +239,35 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             </div>
 
             <!-- Teacher Attendance Summary -->
-            <div class="tw-card">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                    <i class="fas fa-chalkboard-teacher text-blue-600"></i> Teacher Attendance
-                </h3>
-                <div class="max-h-96 overflow-y-auto divide-y divide-slate-100">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chalkboard-teacher" style="color:var(--info);"></i> Teacher Attendance</div>
+                <div style="max-height:400px;overflow-y:auto;">
                     <?php foreach ($school_breakdown as $sb): ?>
-                        <div class="flex justify-between items-center py-3.5 px-2">
-                            <div>
-                                <div class="font-semibold text-sm text-slate-700"><?= htmlspecialchars($sb['name']) ?></div>
-                                <div class="text-xs text-slate-400 mt-0.5"><?= $sb['teachers_present'] ?> of <?= $sb['total_teachers'] ?> present</div>
+                        <div class="school-row">
+                            <div class="school-info">
+                                <div>
+                                    <div style="font-weight:600;font-size:0.85rem;"><?= htmlspecialchars($sb['name']) ?></div>
+                                    <div style="font-size:0.72rem;color:var(--text-muted);"><?= $sb['teachers_present'] ?> of <?= $sb['total_teachers'] ?> present</div>
+                                </div>
                             </div>
-                            <div class="text-lg font-extrabold <?= $sb['total_teachers'] > 0 && $sb['teachers_present'] == $sb['total_teachers'] ? 'text-emerald-600' : 'text-amber-600' ?>">
+                            <div style="font-size:1.1rem;font-weight:800;color:<?= $sb['total_teachers'] > 0 && $sb['teachers_present'] == $sb['total_teachers'] ? 'var(--success)' : 'var(--warning)' ?>;">
                                 <?= $sb['total_teachers'] > 0 ? round(($sb['teachers_present'] / $sb['total_teachers']) * 100) . '%' : '—' ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
                     <?php if (empty($school_breakdown)): ?>
-                        <div class="text-center py-10 text-slate-400 text-sm">No data.</div>
+                        <div class="empty-state" style="padding:30px;"><p>No data.</p></div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
+
+
+
+    <script>
+    // Auto-refresh every 60 seconds
+    setTimeout(() => location.reload(), 60000);
+    </script>
 </body>
 </html>

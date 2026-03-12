@@ -165,19 +165,19 @@ $schools_list = []; $r = $conn->query("SELECT id, name FROM schools WHERE status
         <div class="card" style="padding:0;">
             <?php if ($report_type === 'daily'): ?>
                 <div class="table-wrapper">
-                    <table>
+                    <table class="responsive-stack-table">
                         <thead><tr><th>School</th><th>Enrolled</th><th>Present</th><th>Late</th><th>Absent</th><th>Rate</th><th>Teachers</th></tr></thead>
                         <tbody>
                             <?php if (empty($report_data)): ?><tr><td colspan="7"><div class="empty-state"><i class="fas fa-chart-bar"></i><h3>No data</h3></div></td></tr>
                             <?php else: foreach ($report_data as $d): ?>
                                 <tr>
-                                    <td><strong><?= htmlspecialchars($d['school_name']) ?></strong></td>
-                                    <td><?= $d['enrolled'] ?></td>
-                                    <td class="text-success fw-700"><?= $d['present'] ?></td>
-                                    <td class="text-warning fw-700"><?= $d['late_count'] ?></td>
-                                    <td class="text-error fw-700"><?= $d['absent'] ?></td>
-                                    <td><strong style="color:<?= $d['rate'] >= 90 ? '#16a34a' : ($d['rate'] >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $d['rate'] ?>%</strong></td>
-                                    <td><?= $d['teachers_present'] ?>/<?= $d['total_teachers'] ?></td>
+                                    <td data-label="School"><strong><?= htmlspecialchars($d['school_name']) ?></strong></td>
+                                    <td data-label="Enrolled"><?= $d['enrolled'] ?></td>
+                                    <td data-label="Present" class="text-success fw-700"><?= $d['present'] ?></td>
+                                    <td data-label="Late" class="text-warning fw-700"><?= $d['late_count'] ?></td>
+                                    <td data-label="Absent" class="text-error fw-700"><?= $d['absent'] ?></td>
+                                    <td data-label="Rate"><strong style="color:<?= $d['rate'] >= 90 ? '#16a34a' : ($d['rate'] >= 75 ? '#d97706' : '#dc2626') ?>;"><?= $d['rate'] ?>%</strong></td>
+                                    <td data-label="Teachers"><?= $d['teachers_present'] ?>/<?= $d['total_teachers'] ?></td>
                                 </tr>
                             <?php endforeach; endif; ?>
                         </tbody>
@@ -185,16 +185,16 @@ $schools_list = []; $r = $conn->query("SELECT id, name FROM schools WHERE status
                 </div>
             <?php elseif ($report_type === 'weekly' || $report_type === 'monthly'): ?>
                 <div class="table-wrapper">
-                    <table>
+                    <table class="responsive-stack-table">
                         <thead><tr><th>Date</th><th>Day</th><th>Present</th><th>Late</th></tr></thead>
                         <tbody>
                             <?php if (empty($report_data)): ?><tr><td colspan="4"><div class="empty-state"><h3>No data for this period</h3></div></td></tr>
                             <?php else: foreach ($report_data as $d): ?>
                                 <tr>
-                                    <td><strong><?= date('M j, Y', strtotime($d['date'])) ?></strong></td>
-                                    <td><?= date('l', strtotime($d['date'])) ?></td>
-                                    <td class="text-success fw-700"><?= $d['present'] ?></td>
-                                    <td class="text-warning fw-700"><?= $d['late_count'] ?></td>
+                                    <td data-label="Date"><strong><?= date('M j, Y', strtotime($d['date'])) ?></strong></td>
+                                    <td data-label="Day"><?= date('l', strtotime($d['date'])) ?></td>
+                                    <td data-label="Present" class="text-success fw-700"><?= $d['present'] ?></td>
+                                    <td data-label="Late" class="text-warning fw-700"><?= $d['late_count'] ?></td>
                                 </tr>
                             <?php endforeach; endif; ?>
                         </tbody>
@@ -202,17 +202,17 @@ $schools_list = []; $r = $conn->query("SELECT id, name FROM schools WHERE status
                 </div>
             <?php elseif ($report_type === 'absentees'): ?>
                 <div class="table-wrapper">
-                    <table>
+                    <table class="responsive-stack-table">
                         <thead><tr><th>LRN</th><th>Name</th><th>School</th><th>Grade</th><th>Section</th></tr></thead>
                         <tbody>
                             <?php if (empty($report_data)): ?><tr><td colspan="5"><div class="empty-state"><i class="fas fa-check-circle" style="color:var(--success);"></i><h3>No absentees!</h3></div></td></tr>
                             <?php else: foreach ($report_data as $d): ?>
                                 <tr>
-                                    <td><code style="color:var(--primary);"><?= htmlspecialchars($d['lrn']) ?></code></td>
-                                    <td><strong><?= htmlspecialchars($d['name']) ?></strong></td>
-                                    <td><?= htmlspecialchars($d['school_name'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($d['grade_name'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($d['section_name'] ?? '') ?></td>
+                                    <td data-label="LRN"><code style="color:var(--primary);"><?= htmlspecialchars($d['lrn']) ?></code></td>
+                                    <td data-label="Name"><strong><?= htmlspecialchars($d['name']) ?></strong></td>
+                                    <td data-label="School"><?= htmlspecialchars($d['school_name'] ?? '') ?></td>
+                                    <td data-label="Grade"><?= htmlspecialchars($d['grade_name'] ?? '') ?></td>
+                                    <td data-label="Section"><?= htmlspecialchars($d['section_name'] ?? '') ?></td>
                                 </tr>
                             <?php endforeach; endif; ?>
                         </tbody>
@@ -220,17 +220,17 @@ $schools_list = []; $r = $conn->query("SELECT id, name FROM schools WHERE status
                 </div>
             <?php elseif ($report_type === 'comparison'): ?>
                 <div class="table-wrapper">
-                    <table>
+                    <table class="responsive-stack-table">
                         <thead><tr><th>School</th><th>Enrolled</th><th>Days Tracked</th><th>Avg Present</th><th>Avg Rate</th></tr></thead>
                         <tbody>
                             <?php if (empty($report_data)): ?><tr><td colspan="5"><div class="empty-state"><h3>No data</h3></div></td></tr>
                             <?php else: foreach ($report_data as $d): ?>
                                 <tr>
-                                    <td><strong><?= htmlspecialchars($d['school_name']) ?></strong></td>
-                                    <td><?= $d['enrolled'] ?></td>
-                                    <td><?= $d['days_with_data'] ?></td>
-                                    <td class="fw-700"><?= $d['avg_present'] ?: '—' ?></td>
-                                    <td><strong><?= $d['avg_rate'] ?>%</strong></td>
+                                    <td data-label="School"><strong><?= htmlspecialchars($d['school_name']) ?></strong></td>
+                                    <td data-label="Enrolled"><?= $d['enrolled'] ?></td>
+                                    <td data-label="Days Tracked"><?= $d['days_with_data'] ?></td>
+                                    <td data-label="Avg Present" class="fw-700"><?= $d['avg_present'] ?: '—' ?></td>
+                                    <td data-label="Avg Rate"><strong><?= $d['avg_rate'] ?>%</strong></td>
                                 </tr>
                             <?php endforeach; endif; ?>
                         </tbody>
