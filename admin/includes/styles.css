@@ -26,12 +26,12 @@
     --info: #2563eb;
     --info-bg: rgba(37,99,235,0.08);
     --sidebar-width: 270px;
-    --radius: 16px;
-    --radius-sm: 8px;
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --transition: all 0.2s ease-in-out;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -206,7 +206,7 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 24px;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow);
 }
 
 .card-title {
@@ -297,6 +297,7 @@ body {
 .table-wrapper {
     overflow-x: auto;
     border-radius: var(--radius);
+    width: 100%;
 }
 
 table {
@@ -370,11 +371,11 @@ tbody tr:last-child td {
 .btn-primary {
     background: var(--primary);
     color: #fff;
-    box-shadow: var(--shadow-sm);
 }
 .btn-primary:hover {
     background: var(--primary-dark);
-    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(67,56,202,0.3);
 }
 
 .btn-success {
@@ -817,6 +818,143 @@ select.form-control {
 
     .stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: 18px 14px;
+    }
+
+    .page-header {
+        margin-bottom: 20px;
+    }
+
+    .page-header h1 {
+        font-size: 1.35rem;
+        line-height: 1.25;
+    }
+
+    .card,
+    .stat-card,
+    .school-card,
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .top-bar,
+    .top-bar-right,
+    .toolbar,
+    .toolbar-left,
+    .toolbar-right,
+    .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .top-bar {
+        gap: 14px;
+    }
+
+    .top-bar-right {
+        gap: 10px;
+    }
+
+    .date-display {
+        text-align: left;
+    }
+
+    .filters-bar .form-control,
+    .top-bar-right .form-control,
+    .top-bar-right form,
+    .top-bar-right form input,
+    .top-bar-right form select {
+        width: 100% !important;
+    }
+
+    .table-wrapper {
+        overflow: visible;
+    }
+
+    .responsive-stack-table thead {
+        display: none;
+    }
+
+    .responsive-stack-table,
+    .responsive-stack-table tbody,
+    .responsive-stack-table tr,
+    .responsive-stack-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .responsive-stack-table tr {
+        background: var(--card-bg-alt);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 12px;
+        padding: 12px 14px;
+    }
+
+    .responsive-stack-table tbody td {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        text-align: right;
+        font-size: 0.82rem;
+    }
+
+    .responsive-stack-table tbody td:last-child {
+        border-bottom: none;
+    }
+
+    .responsive-stack-table tbody td::before {
+        content: attr(data-label);
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-align: left;
+        flex: 1;
+    }
+
+    .responsive-stack-table tbody td > * {
+        margin-left: auto;
+        max-width: 65%;
+    }
+
+    .responsive-stack-table .table-cell-stack {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .responsive-stack-table .table-cell-stack > * {
+        margin-left: 0;
+        max-width: none;
+    }
+
+    .modal {
+        width: calc(100% - 18px);
+        max-height: 90vh;
+    }
+
+    .teacher-tab {
+        font-size: 0.78rem !important;
+        padding: 12px 10px !important;
+    }
+
+    .absence-flag {
+        align-items: flex-start;
     }
 }
 

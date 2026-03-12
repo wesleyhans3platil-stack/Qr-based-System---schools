@@ -572,11 +572,11 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
 
     <!-- ═══ NAV BAR ═══ -->
     <nav class="nav-bar">
-        <a href="app_dashboard.php" class="nav-item active"><div class="pill"></div><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
-        <a href="admin/attendance.php" class="nav-item"><div class="pill"></div><i class="fas fa-clipboard-list"></i><span>Attendance</span></a>
-        <a href="admin/school_browser.php" class="nav-item"><div class="pill"></div><i class="fas fa-school"></i><span>Schools</span></a>
-        <a href="admin/reports.php" class="nav-item"><div class="pill"></div><i class="fas fa-file-alt"></i><span>Reports</span></a>
-        <a href="Qrscanattendance.php" class="nav-item"><div class="pill"></div><i class="fas fa-qrcode"></i><span>Scanner</span></a>
+        <a href="/app_dashboard.php" class="nav-item active"><div class="pill"></div><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="/admin/attendance.php" class="nav-item"><div class="pill"></div><i class="fas fa-clipboard-check"></i><span>Attendance</span></a>
+        <a href="/admin/school_browser.php" class="nav-item"><div class="pill"></div><i class="fas fa-building-columns"></i><span>Schools</span></a>
+        <a href="/admin/reports.php" class="nav-item"><div class="pill"></div><i class="fas fa-file-lines"></i><span>Reports</span></a>
+        <a href="/Qrscanattendance.php" class="nav-item"><div class="pill"></div><i class="fas fa-qrcode"></i><span>Scanner</span></a>
     </nav>
 
     <script>

@@ -274,7 +274,7 @@ if ($view_school) {
         <div class="card">
             <div class="card-title"><i class="fas fa-layer-group"></i> Grade & Section Breakdown</div>
             <div class="table-wrapper">
-                <table>
+                <table class="responsive-stack-table">
                     <thead><tr><th>Grade</th><th>Section</th><th>Total</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th></tr></thead>
                     <tbody>
                     <?php foreach ($drill_sections as $sec):
@@ -282,14 +282,14 @@ if ($view_school) {
                         $sr = $sec['total'] > 0 ? min(100, round(($sec['present']/$sec['total'])*100,1)) : 0;
                     ?>
                     <tr>
-                        <td><strong><?= htmlspecialchars($sec['grade_name']) ?></strong></td>
-                        <td><?= htmlspecialchars($sec['section_name']) ?></td>
-                        <td><?= $sec['total'] ?></td>
-                        <td class="text-success fw-600"><?= $sec['present'] ?></td>
-                        <td class="text-error fw-600"><?= $sa ?></td>
-                        <td class="text-warning fw-600"><?= $sec['late_count'] ?></td>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:8px;">
+                        <td data-label="Grade"><strong><?= htmlspecialchars($sec['grade_name']) ?></strong></td>
+                        <td data-label="Section"><?= htmlspecialchars($sec['section_name']) ?></td>
+                        <td data-label="Total"><?= $sec['total'] ?></td>
+                        <td data-label="Present" class="text-success fw-600"><?= $sec['present'] ?></td>
+                        <td data-label="Absent" class="text-error fw-600"><?= $sa ?></td>
+                        <td data-label="Late" class="text-warning fw-600"><?= $sec['late_count'] ?></td>
+                        <td data-label="Rate">
+                            <div class="table-cell-stack" style="display:flex;align-items:center;gap:8px;">
                                 <div class="progress-bar" style="width:80px;"><div style="width:<?= $sr ?>%; height:100%; background:#16a34a; border-radius:5px 0 0 5px;"></div><div style="width:<?= 100 - $sr ?>%; height:100%; background:#dc2626; border-radius:0 5px 5px 0;"></div></div>
                                 <span class="fw-600" style="font-size:0.8rem;"><?= $sr ?>%</span>
                             </div>
@@ -391,7 +391,7 @@ if ($view_school) {
         </div>
 
         <!-- School Cards -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
             <h3 style="font-size:1.1rem; font-weight:700;"><i class="fas fa-th-large" style="color:var(--primary); margin-right:8px;"></i> All Schools</h3>
             <span class="text-muted" style="font-size:0.8rem;">Click a school card for detailed view</span>
         </div>
@@ -431,19 +431,19 @@ if ($view_school) {
         <div class="card" style="margin-top:24px;" id="absentee2dayList">
             <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--error);"></i> Division-Wide 2-Day Consecutive Absentee Master List <span class="badge badge-error" style="margin-left:auto;"><?= count($all_absent_2day) ?></span></div>
             <div class="table-wrapper" style="max-height:400px; overflow-y:auto;">
-                <table>
+                <table class="responsive-stack-table">
                     <thead><tr><th>School</th><th>LRN</th><th>Student Name</th><th>Grade</th><th>Section</th><th>Days Absent</th></tr></thead>
                     <tbody>
                     <?php if (empty($all_absent_2day)): ?>
                     <tr><td colspan="6" style="text-align:center; padding:30px;" class="text-muted">No students with 2 consecutive days absent</td></tr>
                     <?php else: foreach ($all_absent_2day as $abs): ?>
                     <tr>
-                        <td><strong><?= htmlspecialchars($abs['school_name']) ?></strong></td>
-                        <td><?= htmlspecialchars($abs['lrn']) ?></td>
-                        <td><?= htmlspecialchars($abs['name']) ?></td>
-                        <td><?= htmlspecialchars($abs['grade']) ?></td>
-                        <td><?= htmlspecialchars($abs['section']) ?></td>
-                        <td><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:700;background:<?= $abs['total_absent'] >= 5 ? '#fee2e2' : '#fef3c7' ?>;color:<?= $abs['total_absent'] >= 5 ? '#dc2626' : '#d97706' ?>;"><?= $abs['total_absent'] ?> day<?= $abs['total_absent'] != 1 ? 's' : '' ?></span></td>
+                        <td data-label="School"><strong><?= htmlspecialchars($abs['school_name']) ?></strong></td>
+                        <td data-label="LRN"><?= htmlspecialchars($abs['lrn']) ?></td>
+                        <td data-label="Student Name"><?= htmlspecialchars($abs['name']) ?></td>
+                        <td data-label="Grade"><?= htmlspecialchars($abs['grade']) ?></td>
+                        <td data-label="Section"><?= htmlspecialchars($abs['section']) ?></td>
+                        <td data-label="Days Absent"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:700;background:<?= $abs['total_absent'] >= 5 ? '#fee2e2' : '#fef3c7' ?>;color:<?= $abs['total_absent'] >= 5 ? '#dc2626' : '#d97706' ?>;"><?= $abs['total_absent'] ?> day<?= $abs['total_absent'] != 1 ? 's' : '' ?></span></td>
                     </tr>
                     <?php endforeach; endif; ?>
                     </tbody>
@@ -493,7 +493,7 @@ if ($view_school) {
                             <p style="font-weight:600;">All teachers are present today!</p>
                         </div>
                         <?php else: ?>
-                        <table style="width:100%;border-collapse:collapse;">
+                        <table class="responsive-stack-table" style="width:100%;border-collapse:collapse;">
                             <thead>
                                 <tr style="background:var(--error-bg);">
                                     <th style="padding:10px 16px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--error);text-align:left;font-weight:700;">#</th>
@@ -507,17 +507,17 @@ if ($view_school) {
                             <tbody>
                             <?php foreach ($absent_teachers_list as $ti => $at): ?>
                                 <tr style="border-bottom:1px solid var(--border);background:<?= $ti % 2 === 0 ? 'rgba(220,38,38,0.03)' : 'transparent' ?>;">
-                                    <td style="padding:10px 16px;font-size:0.82rem;color:var(--text-muted);font-weight:600;"><?= $ti + 1 ?></td>
-                                    <td style="padding:10px 16px;">
+                                    <td data-label="#" style="padding:10px 16px;font-size:0.82rem;color:var(--text-muted);font-weight:600;"><?= $ti + 1 ?></td>
+                                    <td data-label="Teacher" style="padding:10px 16px;">
                                         <div style="display:flex;align-items:center;gap:10px;">
                                             <div style="width:34px;height:34px;border-radius:50%;background:var(--error-bg);display:flex;align-items:center;justify-content:center;color:var(--error);font-weight:700;font-size:0.8rem;"><?= strtoupper(substr($at['name'], 0, 1)) ?></div>
                                             <span style="font-weight:600;font-size:0.85rem;"><?= htmlspecialchars($at['name']) ?></span>
                                         </div>
                                     </td>
-                                    <td style="padding:10px 16px;"><span style="background:var(--primary-bg);color:var(--primary);padding:2px 8px;border-radius:6px;font-family:monospace;font-size:0.78rem;font-weight:600;"><?= htmlspecialchars($at['employee_id']) ?></span></td>
-                                    <td style="padding:10px 16px;font-size:0.82rem;"><?= htmlspecialchars($at['school_name']) ?></td>
-                                    <td style="padding:10px 16px;font-size:0.82rem;color:var(--text-muted);"><?= htmlspecialchars($at['contact_number'] ?: '—') ?></td>
-                                    <td style="padding:10px 16px;"><span style="background:var(--error-bg);color:var(--error);font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;"><i class="fas fa-times-circle" style="margin-right:3px;"></i>Absent</span></td>
+                                    <td data-label="Employee ID" style="padding:10px 16px;"><span style="background:var(--primary-bg);color:var(--primary);padding:2px 8px;border-radius:6px;font-family:monospace;font-size:0.78rem;font-weight:600;"><?= htmlspecialchars($at['employee_id']) ?></span></td>
+                                    <td data-label="School" style="padding:10px 16px;font-size:0.82rem;"><?= htmlspecialchars($at['school_name']) ?></td>
+                                    <td data-label="Contact" style="padding:10px 16px;font-size:0.82rem;color:var(--text-muted);"><?= htmlspecialchars($at['contact_number'] ?: '—') ?></td>
+                                    <td data-label="Status" style="padding:10px 16px;"><span style="display:inline-flex;align-items:center;background:var(--error-bg);color:var(--error);font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;"><i class="fas fa-times-circle" style="margin-right:3px;"></i>Absent</span></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
@@ -533,7 +533,7 @@ if ($view_school) {
                             <p style="font-weight:600;">No teachers have scanned in today.</p>
                         </div>
                         <?php else: ?>
-                        <table style="width:100%;border-collapse:collapse;">
+                        <table class="responsive-stack-table" style="width:100%;border-collapse:collapse;">
                             <thead>
                                 <tr style="background:var(--success-bg);">
                                     <th style="padding:10px 16px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--success);text-align:left;font-weight:700;">#</th>
@@ -547,17 +547,17 @@ if ($view_school) {
                             <tbody>
                             <?php foreach ($present_teachers_list as $ti => $pt): ?>
                                 <tr style="border-bottom:1px solid var(--border);">
-                                    <td style="padding:10px 16px;font-size:0.82rem;color:var(--text-muted);font-weight:600;"><?= $ti + 1 ?></td>
-                                    <td style="padding:10px 16px;">
+                                    <td data-label="#" style="padding:10px 16px;font-size:0.82rem;color:var(--text-muted);font-weight:600;"><?= $ti + 1 ?></td>
+                                    <td data-label="Teacher" style="padding:10px 16px;">
                                         <div style="display:flex;align-items:center;gap:10px;">
                                             <div style="width:34px;height:34px;border-radius:50%;background:var(--success-bg);display:flex;align-items:center;justify-content:center;color:var(--success);font-weight:700;font-size:0.8rem;"><?= strtoupper(substr($pt['name'], 0, 1)) ?></div>
                                             <span style="font-weight:600;font-size:0.85rem;"><?= htmlspecialchars($pt['name']) ?></span>
                                         </div>
                                     </td>
-                                    <td style="padding:10px 16px;"><span style="background:var(--primary-bg);color:var(--primary);padding:2px 8px;border-radius:6px;font-family:monospace;font-size:0.78rem;font-weight:600;"><?= htmlspecialchars($pt['employee_id']) ?></span></td>
-                                    <td style="padding:10px 16px;font-size:0.82rem;"><?= htmlspecialchars($pt['school_name']) ?></td>
-                                    <td style="padding:10px 16px;"><span style="color:var(--success);font-weight:600;"><?= date('h:i A', strtotime($pt['time_in'])) ?></span></td>
-                                    <td style="padding:10px 16px;"><span style="background:var(--success-bg);color:var(--success);font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;"><?= ucfirst($pt['att_status']) ?></span></td>
+                                    <td data-label="Employee ID" style="padding:10px 16px;"><span style="background:var(--primary-bg);color:var(--primary);padding:2px 8px;border-radius:6px;font-family:monospace;font-size:0.78rem;font-weight:600;"><?= htmlspecialchars($pt['employee_id']) ?></span></td>
+                                    <td data-label="School" style="padding:10px 16px;font-size:0.82rem;"><?= htmlspecialchars($pt['school_name']) ?></td>
+                                    <td data-label="Time In" style="padding:10px 16px;"><span style="color:var(--success);font-weight:600;"><?= date('h:i A', strtotime($pt['time_in'])) ?></span></td>
+                                    <td data-label="Status" style="padding:10px 16px;"><span style="display:inline-flex;align-items:center;background:var(--success-bg);color:var(--success);font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;"><?= ucfirst($pt['att_status']) ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
@@ -595,6 +595,8 @@ if ($view_school) {
         </script>
         <?php endif; ?>
     </div>
+
+    <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 
     <script>setTimeout(() => location.reload(), 60000);</script>
 </body>
