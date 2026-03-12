@@ -638,5 +638,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             });
     }
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

@@ -382,5 +382,6 @@ function confirmDelete(id, name) {
     );
 }
 </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

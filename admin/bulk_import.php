@@ -1109,5 +1109,6 @@ if ($show_preview) {
         });
     });
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

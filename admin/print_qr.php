@@ -351,5 +351,6 @@ $printing = isset($_GET['print']) && count($persons) > 0;
     });
     <?php endforeach; ?>
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

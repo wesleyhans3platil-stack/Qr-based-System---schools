@@ -966,5 +966,6 @@ while ($row = $result->fetch_assoc()) {
         });
     </script>
 
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

@@ -491,5 +491,6 @@ if ($result) {
         document.getElementById('editModal').classList.add('active');
     }
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

@@ -269,5 +269,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
     // Auto-refresh every 60 seconds
     setTimeout(() => location.reload(), 60000);
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

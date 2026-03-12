@@ -364,5 +364,6 @@ $teachers_list = []; $r = $conn->query("SELECT id, name, employee_id, school_id 
         form.submit();
     }
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>
