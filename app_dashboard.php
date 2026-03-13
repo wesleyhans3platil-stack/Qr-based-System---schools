@@ -417,7 +417,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         <div class="date-row">
             <?php if ($is_today): ?><div class="live-dot"></div><div class="date-chip"><i class="fas fa-bolt"></i>Real-time — <?= date('D, M j') ?></div>
             <?php else: ?><div class="date-chip"><i class="fas fa-calendar"></i><?= date('D, M j, Y', strtotime($filter_date)) ?></div><?php endif; ?>
-            <div class="date-chip" id="lastUpdated" style="font-size:0.8rem;color:var(--text-muted);">Last updated: --:--:--</div>
             <input type="date" class="date-input" value="<?= htmlspecialchars($filter_date) ?>" onchange="applyDate(this.value)">
         </div>
     </header>
@@ -820,16 +819,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     }
 
     // ═══ Main Poll ═══
-    function formatTime(date) {
-        const d = new Date(date);
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
-    function updateLastUpdated() {
-        const el = document.getElementById('lastUpdated');
-        if (!el) return;
-        el.textContent = 'Last updated: ' + formatTime(new Date());
-    }
 
     async function pollData() {
         if (isPolling) return;
@@ -848,8 +837,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             updateFlagged(data.flagged_students, s.flag_count);
             updateTeachers(data.school_breakdown, s.teachers_in, s.total_teachers, s.teacher_att_pct);
             updateChart(data.trend);
-
-            updateLastUpdated();
         } catch (e) {
             // Silent fail — next poll will retry
             console.warn('Poll error:', e);
