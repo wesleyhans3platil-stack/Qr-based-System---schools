@@ -268,6 +268,27 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'includes/header.php'; ?></head>
+<style>
+    /* Custom styled date inputs (better than browser default) */
+    input[type="date"].styled-date {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background: #fff url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23666%22%3E%3Cpath d=%22M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM5 20V9h14v11H5zm2-9h5v5H7v-5z%22/%3E%3C/svg%3E') no-repeat right 10px center/18px 18px;
+        background-color: #fff;
+        background-clip: padding-box;
+        padding: 10px 38px 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        font-size: 1rem;
+        line-height: 1.3;
+    }
+    input[type="date"].styled-date:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+</style>
 <body>
     <?php include 'includes/sidebar.php'; ?>
     <div class="main-content">
@@ -378,7 +399,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                             </div>
                             <div style="flex:1;min-width:200px;">
                                 <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Launch Date</label>
-                                <input type="date" name="launch_start_date" class="form-control" value="<?= htmlspecialchars($launchVal) ?>">
+                                <input type="date" name="launch_start_date" class="form-control styled-date" value="<?= htmlspecialchars($launchVal) ?>">
                             </div>
                             <div id="schoolLaunchRow" style="flex:1;min-width:220px;display:<?= !empty($schoolLaunchId) ? 'flex' : 'none' ?>;gap:12px;">
                                 <div style="flex:1;">
@@ -438,7 +459,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                                                 $schoolDate = $parsed->format('Y-m-d');
                                             }
                                         ?>
-                                        <input type="date" name="school_launch_date" value="<?= htmlspecialchars($schoolDate) ?>" style="flex:1;">
+                                        <input type="date" name="school_launch_date" class="styled-date" value="<?= htmlspecialchars($schoolDate) ?>" style="flex:1;">
                                         <button type="submit" name="set_school_launch" class="btn" style="padding:6px 10px;background:#10b981;color:#fff;border-radius:8px;border:none;">Set</button>
                                         <button type="submit" name="clear_school_launch" class="btn" style="padding:6px 10px;background:#ef4444;color:#fff;border-radius:8px;border:none;">Clear</button>
                                     </form>
