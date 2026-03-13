@@ -176,11 +176,23 @@ if (isset($_POST['update_system'])) {
         $stmt->bind_param("sss", $f, $val, $val);
         $stmt->execute();
     }
+
     // Launch start date (optional)
+    $launch_scope = $_POST['launch_scope'] ?? 'all';
     $launch_start = trim($_POST['launch_start_date'] ?? '');
-    $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('launch_start_date', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-    $stmt->bind_param("ss", $launch_start, $launch_start);
-    $stmt->execute();
+    $launch_school_id = intval($_POST['launch_school_id'] ?? 0);
+
+    if ($launch_scope === 'school' && $launch_school_id) {
+        $key = 'launch_start_date_school_' . $launch_school_id;
+        $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+        $stmt->bind_param("sss", $key, $launch_start, $launch_start);
+        $stmt->execute();
+    } else {
+        $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('launch_start_date', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+        $stmt->bind_param("ss", $launch_start, $launch_start);
+        $stmt->execute();
+    }
+
     // SMS enabled toggle
     $sms_enabled = isset($_POST['sms_enabled']) ? '1' : '0';
     $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('sms_enabled', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
@@ -317,9 +329,46 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                                 }
                                 $launchVal = $candidate;
                             }
+
+                            // Load school-specific launch dates
+                            $schoolLaunchDate = '';
+                            $schoolLaunchId = '';
+                            foreach ($schools as $sch) {
+                                $key = 'launch_start_date_school_' . $sch['id'];
+                                if (!empty($sys[$key])) {
+                                    $schoolLaunchDate = $sys[$key];
+                                    $schoolLaunchId = $sch['id'];
+                                    break;
+                                }
+                            }
                         ?>
-                        <input type="date" name="launch_start_date" class="form-control" value="<?= htmlspecialchars($launchVal) ?>" placeholder="2026-06-01">
-                        <small style="color:var(--text-muted);display:block;margin-top:6px;">If set, new imports without an "Active from" date will default to this launch date.</small>
+
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:1;min-width:200px;">
+                                <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Apply to</label>
+                                <select name="launch_scope" class="form-control" onchange="document.getElementById('schoolLaunchRow').style.display = this.value === 'school' ? 'flex' : 'none';">
+                                    <option value="all" <?= empty($schoolLaunchId) ? 'selected' : '' ?>>All schools</option>
+                                    <option value="school" <?= !empty($schoolLaunchId) ? 'selected' : '' ?>>Individual school</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:200px;">
+                                <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Launch Date</label>
+                                <input type="date" name="launch_start_date" class="form-control" value="<?= htmlspecialchars($launchVal) ?>">
+                            </div>
+                            <div id="schoolLaunchRow" style="flex:1;min-width:220px;display:<?= !empty($schoolLaunchId) ? 'flex' : 'none' ?>;gap:12px;">
+                                <div style="flex:1;">
+                                    <label style="display:block;font-size:0.85rem;margin-bottom:4px;">School</label>
+                                    <select name="launch_school_id" class="form-control">
+                                        <option value="">-- Choose school --</option>
+                                        <?php foreach ($schools as $sch): ?>
+                                            <option value="<?= $sch['id'] ?>" <?= ($sch['id'] == $schoolLaunchId ? 'selected' : '') ?>><?= htmlspecialchars($sch['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <small style="color:var(--text-muted);display:block;margin-top:6px;">If set, new imports without an "Active from" date will default to this launch date. Choose "All schools" or set per-school.</small>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
                     <button type="submit" name="update_system" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save System Settings</button>
