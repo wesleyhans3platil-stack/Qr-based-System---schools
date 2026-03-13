@@ -14,7 +14,20 @@ app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOStri
 
 app.use('/api', dashboardRouter);
 
-const port = Number(process.env.PORT || 3000);
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
+// Serve static dashboard frontend
+app.use(express.static(new URL('./public', import.meta.url).pathname));
+app.get('*', (req, res) => {
+  res.sendFile(new URL('./public/index.html', import.meta.url).pathname);
+});
+
+const port = Number(process.env.PORT || 0);
+
+const server = app.listen(port, () => {
+  const actualPort = server.address()?.port;
+  console.log(`Server listening on http://localhost:${actualPort}`);
+});
+
+server.on('error', (err) => {
+  console.error('Server failed to start:', err);
+  process.exit(1);
 });
