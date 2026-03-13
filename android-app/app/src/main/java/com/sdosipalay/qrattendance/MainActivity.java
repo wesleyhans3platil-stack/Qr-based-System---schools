@@ -566,9 +566,9 @@ public class MainActivity extends AppCompatActivity {
         // Allow notifications or external intents to override target URL
         String target = getIntent().getStringExtra("target_url");
         if (target != null && !target.isEmpty()) {
-            pendingUrl = target;
+            pendingUrl = addVersionParam(target);
         } else {
-            pendingUrl = baseUrl + "app_dashboard.php";
+            pendingUrl = addVersionParam(baseUrl + "app_dashboard.php");
         }
 
         String sessionCookie = getIntent().getStringExtra("session_cookie");
@@ -585,18 +585,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private String addVersionParam(String url) {
+        // Append version code (or timestamp) to force the WebView to reload fresh HTML.
+        String param = "v=" + BuildConfig.VERSION_CODE;
+        if (url.contains("?")) {
+            return url + "&" + param;
+        }
+        return url + "?" + param;
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         String target = intent.getStringExtra("target_url");
         if (target != null && !target.isEmpty()) {
+            String versioned = addVersionParam(target);
             if (isNetworkAvailable()) {
-                webView.loadUrl(target);
+                webView.loadUrl(versioned);
                 hideOffline();
             } else {
                 // store for later
-                pendingUrl = target;
+                pendingUrl = versioned;
             }
         }
     }
