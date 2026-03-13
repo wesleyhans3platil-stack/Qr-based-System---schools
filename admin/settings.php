@@ -374,6 +374,34 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             </div>
         </div>
 
+        <?php
+            // Build per-school launch date rows (falls back to global date if not set per school)
+            $globalLaunch = $sys['launch_start_date'] ?? '';
+            $schoolLaunchRows = [];
+            foreach ($schools as $sch) {
+                $key = 'launch_start_date_school_' . $sch['id'];
+                $date = $sys[$key] ?? $globalLaunch;
+                $schoolLaunchRows[] = ['school' => $sch['name'], 'date' => $date ?: ''];
+            }
+        ?>
+        <div class="card" style="margin-top:24px;">
+            <div class="card-title"><i class="fas fa-school"></i> Launch Date by School</div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">Shows the launch date effective for each school (blank means not set).</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>School</th><th>Launch Date</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($schoolLaunchRows as $row): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($row['school']) ?></td>
+                                <td style="font-weight:600;"><?= $row['date'] ? htmlspecialchars($row['date']) : '<span style="color:#6b7280;">(not set)</span>' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Admin Accounts -->
         <!-- Holiday Management -->
         <div class="card" style="margin-top:24px;">
