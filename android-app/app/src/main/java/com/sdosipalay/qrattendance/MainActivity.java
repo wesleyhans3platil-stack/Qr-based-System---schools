@@ -56,6 +56,7 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
+import androidx.work.OneTimeWorkRequest;
 
 import java.io.File;
 import java.io.IOException;
@@ -140,6 +141,8 @@ public class MainActivity extends AppCompatActivity {
         loadApp();
         scheduleAbsenceCheck();
         showWelcomeNotification();
+        // Run an immediate check once at login so admins get absence alerts like the welcome
+        triggerImmediateAbsenceCheck();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -202,6 +205,21 @@ public class MainActivity extends AppCompatActivity {
         );
 
         Log.d(TAG, "Absence check worker scheduled (every 30 min)");
+    }
+
+    private void triggerImmediateAbsenceCheck() {
+        try {
+            Constraints constraints = new Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build();
+            OneTimeWorkRequest req = new OneTimeWorkRequest.Builder(AbsenceCheckWorker.class)
+                    .setConstraints(constraints)
+                    .build();
+            WorkManager.getInstance(this).enqueue(req);
+            Log.d(TAG, "Immediate absence check enqueued");
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to enqueue immediate absence check", e);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════
