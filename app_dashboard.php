@@ -411,7 +411,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                 </div>
             </div>
             <div class="bar-actions">
-                <button class="bar-btn" id="refreshBtn" onclick="smoothRefresh()" title="Refresh"><i class="fas fa-sync-alt" id="refreshIcon"></i></button>
                 <a href="admin/logout.php" class="bar-btn" title="Sign out"><i class="fas fa-right-from-bracket"></i></a>
             </div>
         </div>
@@ -853,7 +852,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         showToast('Updated', true);
     }
 
-    // Start real-time polling
+    // Start real-time polling (initial fetch immediately)
+    pollData();
     pollTimer = setInterval(pollData, POLL_INTERVAL);
 
     // Pause when tab hidden, resume when visible
