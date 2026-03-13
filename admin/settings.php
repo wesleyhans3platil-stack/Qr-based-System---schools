@@ -201,9 +201,23 @@ if (isset($_POST['update_system'])) {
 
     // Launch start date (optional). Default to today if blank.
     $launch_scope = $_POST['launch_scope'] ?? 'all';
-    $launch_start = trim($_POST['launch_start_date'] ?? '');
-    if ($launch_start === '') {
+    $launch_start_raw = trim($_POST['launch_start_date'] ?? '');
+    $launch_start = '';
+    if ($launch_start_raw === '') {
         $launch_start = date('Y-m-d');
+    } else {
+        // Normalize date formats (allow mm/dd/yyyy or yyyy-mm-dd)
+        $d = DateTime::createFromFormat('m/d/Y', $launch_start_raw);
+        if ($d && $d->format('m/d/Y') === $launch_start_raw) {
+            $launch_start = $d->format('Y-m-d');
+        } else {
+            $d = DateTime::createFromFormat('Y-m-d', $launch_start_raw);
+            if ($d) {
+                $launch_start = $d->format('Y-m-d');
+            } else {
+                $launch_start = date('Y-m-d');
+            }
+        }
     }
     $launch_school_id = intval($_POST['launch_school_id'] ?? 0);
 
@@ -416,7 +430,15 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                                 <td>
                                     <form method="POST" style="display:flex;gap:8px;align-items:center;">
                                         <input type="hidden" name="school_id" value="<?= $row['id'] ?>">
-                                        <input type="date" name="school_launch_date" value="<?= htmlspecialchars($row['date'] ?: ($sys['launch_start_date'] ?? '')) ?>" style="flex:1;">
+                                        <?php
+                                            $schoolDate = $row['date'] ?: ($sys['launch_start_date'] ?? '');
+                                            // Normalize to yyyy-mm-dd if possible
+                                            $parsed = DateTime::createFromFormat('m/d/Y', $schoolDate);
+                                            if ($parsed && $parsed->format('m/d/Y') === $schoolDate) {
+                                                $schoolDate = $parsed->format('Y-m-d');
+                                            }
+                                        ?>
+                                        <input type="date" name="school_launch_date" value="<?= htmlspecialchars($schoolDate) ?>" style="flex:1;">
                                         <button type="submit" name="set_school_launch" class="btn" style="padding:6px 10px;background:#10b981;color:#fff;border-radius:8px;border:none;">Set</button>
                                         <button type="submit" name="clear_school_launch" class="btn" style="padding:6px 10px;background:#ef4444;color:#fff;border-radius:8px;border:none;">Clear</button>
                                     </form>
