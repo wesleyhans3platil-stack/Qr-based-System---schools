@@ -13,6 +13,16 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+// Simple short-lived cache to reduce DB load under frequent polling (e.g. mobile app).
+// Cache key depends on role + school + date, so each view has separate cache.
+$cacheTtl = 3; // seconds
+$cacheKey = 'dashboard_' . ($_SESSION['admin_role'] ?? '') . '_' . ($_SESSION['admin_school_id'] ?? '') . '_' . ($_GET['date'] ?? date('Y-m-d')) . '_' . ($_GET['school'] ?? '');
+$cacheFile = sys_get_temp_dir() . '/qr_dash_' . md5($cacheKey) . '.json';
+if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheTtl)) {
+    readfile($cacheFile);
+    exit;
+}
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/school_days.php';
 
@@ -176,7 +186,7 @@ for ($count = 0; $count < 7; $count++) {
     $td = date('Y-m-d', strtotime($td . ' -1 day'));
 }
 
-echo json_encode([
+$payload = [
     'ts' => time(),
     'stats' => [
         'total_schools' => (int)$total_schools,
@@ -195,4 +205,8 @@ echo json_encode([
     'school_breakdown' => $school_breakdown,
     'schools_ranked' => array_slice($schools_ranked, 0, 10),
     'trend' => $div_trend,
-]);
+];
+
+$json = json_encode($payload);
+file_put_contents($cacheFile, $json);
+echo $json;
