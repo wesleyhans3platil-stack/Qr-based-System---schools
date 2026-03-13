@@ -6,10 +6,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-    --primary: #4338ca;
-    --primary-dark: #3730a3;
-    --primary-light: #6366f1;
-    --primary-bg: rgba(67,56,202,0.08);
+    --primary: #059669;
+    --primary-dark: #047857;
+    --primary-light: #34d399;
+    --primary-bg: rgba(5,150,105,0.08);
     --bg: #f1f5f9;
     --sidebar-bg: #ffffff;
     --card-bg: #ffffff;
