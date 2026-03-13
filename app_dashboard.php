@@ -865,6 +865,23 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     pollData();
     pollTimer = setInterval(pollData, POLL_INTERVAL);
 
+    // Add SSE-based quick refresh trigger (server broadcasts when data changes)
+    if (typeof EventSource !== 'undefined') {
+        try {
+            const evt = new EventSource('api/stream_updates.php');
+            evt.onmessage = () => {
+                // Only poll when not already polling to avoid overlap
+                if (!isPolling) pollData();
+            };
+            evt.onerror = () => {
+                // reconnect automatically (EventSource does this internally), but if it fails hard, fall back to polling alone
+                console.warn('SSE connection error');
+            };
+        } catch (e) {
+            console.warn('SSE not supported', e);
+        }
+    }
+
     // Pause when tab hidden, resume when visible
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
