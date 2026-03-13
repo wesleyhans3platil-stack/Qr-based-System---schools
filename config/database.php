@@ -253,10 +253,19 @@ function initializeSchema($conn) {
         qr_code VARCHAR(255) NOT NULL UNIQUE,
         status ENUM('active','inactive') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        active_from DATE DEFAULT NULL,
         FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE,
         FOREIGN KEY (grade_level_id) REFERENCES grade_levels(id) ON DELETE CASCADE,
         FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Add active_from column to existing installs if missing
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $col_check = $conn->query("SHOW COLUMNS FROM students LIKE 'active_from'");
+    if (!$col_check || $col_check->num_rows == 0) {
+        $conn->query("ALTER TABLE students ADD COLUMN active_from DATE DEFAULT NULL AFTER created_at");
+    }
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
     // Add guardian_contact column if missing (for existing installs)
     mysqli_report(MYSQLI_REPORT_OFF);

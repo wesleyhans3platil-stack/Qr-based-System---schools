@@ -71,17 +71,37 @@ $att_pct = $total_students > 0 ? min(100, round(($students_present / $total_stud
 
 // 2-day consecutive absentees
 $consecutive_absent = [];
-$sql = "SELECT s.id, s.lrn, s.name, gl.name as grade, sec.name as section
+$sql = "SELECT s.id, s.lrn, s.name, s.created_at, s.active_from, s.school_id, gl.name as grade, sec.name as section
         FROM students s
         JOIN grade_levels gl ON s.grade_level_id = gl.id
         JOIN sections sec ON s.section_id = sec.id
         WHERE s.status='active' AND s.school_id = $admin_school_id
-        AND DATE(s.created_at) < '$filter_date'
+        AND DATE(COALESCE(s.active_from, s.created_at)) < '$filter_date'
         AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
-        AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)
-        ORDER BY gl.name, sec.name, s.name";
-$r = $conn->query($sql);
-if ($r) while ($row = $r->fetch_assoc()) $consecutive_absent[] = $row;
+        AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)";
+$r = $conn->query($sql . " ORDER BY gl.name, sec.name, s.name LIMIT 200");
+if ($r) {
+    while ($row = $r->fetch_assoc()) {
+        $enroll_date = null;
+        if (!empty($row['active_from'])) $enroll_date = date('Y-m-d', strtotime($row['active_from']));
+        elseif (!empty($row['created_at'])) $enroll_date = date('Y-m-d', strtotime($row['created_at']));
+        $range_start = date('Y-m-d', strtotime("-30 days", strtotime($filter_date)));
+        if ($enroll_date && $enroll_date > $range_start) $range_start = $enroll_date;
+        $sd_count = 0;
+        $d = $range_start;
+        while ($d <= $filter_date) {
+            if (isSchoolDay($d, $conn, $row['school_id'] ?? $admin_school_id)) $sd_count++;
+            $d = date('Y-m-d', strtotime($d . ' +1 day'));
+        }
+        $pid = (int)$row['id'];
+        $safe_start = $conn->real_escape_string($range_start);
+        $safe_end = $conn->real_escape_string($filter_date);
+        $att_r = $conn->query("SELECT COUNT(DISTINCT date) as cnt FROM attendance WHERE person_type='student' AND person_id = $pid AND time_in IS NOT NULL AND date BETWEEN '$safe_start' AND '$safe_end'");
+        $att_cnt = 0; if ($att_r) $att_cnt = (int)($att_r->fetch_assoc()['cnt'] ?? 0);
+        $row['total_absent'] = max(0, $sd_count - $att_cnt);
+        $consecutive_absent[] = $row;
+    }
+}
 
 // Section breakdown
 $section_data = [];

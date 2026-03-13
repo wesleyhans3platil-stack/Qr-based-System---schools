@@ -3,6 +3,30 @@ session_start();
 require_once '../config/database.php';
 $conn = getDBConnection();
 
+// Trigger a deploy hook (POST JSON). Returns true on 2xx response.
+function triggerDeployHook($url) {
+    if (empty($url)) return false;
+    $payload = json_encode(['event' => 'redeploy', 'ts' => date('c')]);
+    if (function_exists('curl_version')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $res = curl_exec($ch);
+        $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return $http >= 200 && $http < 300;
+    }
+    $opts = ['http' => ['method' => 'POST', 'header' => "Content-Type: application/json\r\n", 'content' => $payload, 'timeout' => 10]];
+    $ctx = stream_context_create($opts);
+    $result = @file_get_contents($url, false, $ctx);
+    if ($result === false) return false;
+    // best-effort: consider success if we got some response
+    return true;
+}
+
 if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'super_admin') {
     header('Location: ../admin_login.php');
     exit;
@@ -176,12 +200,42 @@ if (isset($_POST['update_system'])) {
         $stmt->bind_param("sss", $f, $val, $val);
         $stmt->execute();
     }
+    // Launch start date (optional)
+    $launch_start = trim($_POST['launch_start_date'] ?? '');
+    $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('launch_start_date', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+    $stmt->bind_param("ss", $launch_start, $launch_start);
+    $stmt->execute();
     // SMS enabled toggle
     $sms_enabled = isset($_POST['sms_enabled']) ? '1' : '0';
     $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('sms_enabled', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     $stmt->bind_param("ss", $sms_enabled, $sms_enabled);
     $stmt->execute();
+    // Deploy webhook and auto-redeploy toggle
+    $deploy_webhook = trim($_POST['deploy_webhook_url'] ?? '');
+    $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('deploy_webhook_url', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+    $stmt->bind_param("ss", $deploy_webhook, $deploy_webhook);
+    $stmt->execute();
+    $auto_redeploy = isset($_POST['auto_redeploy']) ? '1' : '0';
+    $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('auto_redeploy', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+    $stmt->bind_param("ss", $auto_redeploy, $auto_redeploy);
+    $stmt->execute();
     $success = 'System settings updated!';
+
+    // If auto redeploy enabled, trigger webhook (best-effort)
+    if ($auto_redeploy === '1' && !empty($deploy_webhook)) {
+        $ok = triggerDeployHook($deploy_webhook);
+        if ($ok) $success .= ' Redeploy triggered.'; else $success .= ' Redeploy webhook failed.';
+    }
+}
+
+// Manual redeploy trigger
+if (isset($_POST['trigger_deploy'])) {
+    $webhook = trim($_POST['deploy_webhook_url'] ?? ($sys['deploy_webhook_url'] ?? ''));
+    if (empty($webhook)) { $error = 'No deploy webhook configured.'; }
+    else {
+        $ok = triggerDeployHook($webhook);
+        if ($ok) $success = 'Redeploy triggered successfully.'; else $error = 'Failed to call deploy webhook.';
+    }
 }
 
 // Fetch time settings
@@ -217,6 +271,14 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
         <div class="page-header">
             <h1><i class="fas fa-cog" style="color:var(--primary);margin-right:8px;"></i> System Settings</h1>
             <p>Configure time windows and manage admin accounts</p>
+        </div>
+
+        <?php // Show current Launch Start Date prominently for super-admins ?>
+        <div style="margin-bottom:12px;">
+            <span style="display:inline-block;background:#eef2ff;border:1px solid #e0e7ff;padding:8px 12px;border-radius:8px;font-weight:600;color:#3730a3;">
+                <i class="fas fa-flag" style="margin-right:8px;color:#4338ca;"></i> Launch Start Date:
+                <span style="margin-left:8px;color:inherit;"><?= !empty($sys['launch_start_date']) ? htmlspecialchars($sys['launch_start_date']) : '<span style="color:#dc2626;font-weight:700;">Not set</span>' ?></span>
+            </span>
         </div>
 
         <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle"></i> <?= $success ?></div><?php endif; ?>
@@ -283,6 +345,20 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <label>System Name</label>
                         <input type="text" name="system_name" class="form-control" value="<?= htmlspecialchars($sys['system_name'] ?? 'QR Attendance System') ?>" placeholder="e.g. QR Attendance System">
                     </div>
+                    <div class="form-group">
+                        <label>Launch Start Date (optional)</label>
+                        <input type="date" name="launch_start_date" class="form-control" value="<?= htmlspecialchars($sys['launch_start_date'] ?? '') ?>" placeholder="2026-06-01">
+                        <small style="color:var(--text-muted);display:block;margin-top:6px;">If set, new imports without an "Active from" date will default to this launch date.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Deploy Webhook (optional)</label>
+                        <input type="url" name="deploy_webhook_url" class="form-control" value="<?= htmlspecialchars($sys['deploy_webhook_url'] ?? '') ?>" placeholder="https://example.com/deploy-hook">
+                        <small style="color:var(--text-muted);display:block;margin-top:6px;">Optional HTTP webhook (e.g., Railway/GitHub Actions) called when you trigger redeploy or when auto-redeploy is enabled.</small>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                        <input type="checkbox" id="auto_redeploy" name="auto_redeploy" value="1" <?= (!empty($sys['auto_redeploy']) && $sys['auto_redeploy'] === '1') ? 'checked' : '' ?> />
+                        <label for="auto_redeploy" style="margin:0;font-weight:600;">Auto redeploy on settings save</label>
+                    </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
                     <div class="form-row">
                         <div class="form-group"><label>SDS Name</label><input type="text" name="sds_name" class="form-control" value="<?= htmlspecialchars($sys['sds_name'] ?? '') ?>" placeholder="Full name of SDS"></div>
@@ -292,7 +368,10 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <div class="form-group"><label>ASDS Name</label><input type="text" name="asds_name" class="form-control" value="<?= htmlspecialchars($sys['asds_name'] ?? '') ?>" placeholder="Full name of ASDS"></div>
                         <div class="form-group"><label>ASDS Mobile</label><input type="text" name="asds_mobile" class="form-control" value="<?= htmlspecialchars($sys['asds_mobile'] ?? '') ?>" placeholder="09171234567"></div>
                     </div>
-                    <button type="submit" name="update_system" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save System Settings</button>
+                    <div style="display:flex;gap:10px;">
+                        <button type="submit" name="update_system" class="btn btn-primary" style="flex:1;"><i class="fas fa-save"></i> Save System Settings</button>
+                        <button type="submit" name="trigger_deploy" class="btn" style="flex:0 0 200px;background:#eef2ff;color:#3730a3;border:1px solid #e0e7ff;"><i class="fas fa-rocket"></i> Trigger Redeploy Now</button>
+                    </div>
                 </form>
             </div>
         </div>

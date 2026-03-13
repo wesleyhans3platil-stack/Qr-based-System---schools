@@ -119,6 +119,12 @@ if (isset($_POST['preview']) && $_POST['import_type'] === 'students' && isset($_
             $_SESSION['import_school_id'] = $school_id;
             $_SESSION['import_grade_level_id'] = $grade_level_id;
             $_SESSION['import_section_id'] = $section_id;
+                // Default import active_from to system launch_start_date if not provided
+                $sys_launch = null;
+                $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
+                if ($r && $row = $r->fetch_assoc()) $sys_launch = $row['setting_value'];
+                $posted_af = trim($_POST['import_active_from'] ?? '');
+                $_SESSION['import_active_from'] = $posted_af !== '' ? $posted_af : ($sys_launch ?: null);
             $_SESSION['import_type'] = 'students';
 
             array_shift($rows);
@@ -425,10 +431,22 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'stu
 
         if ($rows && count($rows) > 1) {
             array_shift($rows);
-            $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status)
+            $import_active_from = $_SESSION['import_active_from'] ?? null;
+            if (!$import_active_from) {
+                $r2 = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
+                if ($r2 && $rw = $r2->fetch_assoc()) $import_active_from = $rw['setting_value'] ?: null;
+            }
+            if ($import_active_from) {
+                $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, active_from)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)
+                                    ON DUPLICATE KEY UPDATE name = VALUES(name), school_id = VALUES(school_id),
+                                    grade_level_id = VALUES(grade_level_id), section_id = VALUES(section_id), guardian_contact = VALUES(guardian_contact), active_from = VALUES(active_from)");
+            } else {
+                $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status)
                                     VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
                                     ON DUPLICATE KEY UPDATE name = VALUES(name), school_id = VALUES(school_id),
                                     grade_level_id = VALUES(grade_level_id), section_id = VALUES(section_id), guardian_contact = VALUES(guardian_contact)");
+            }
 
             foreach ($rows as $i => $row) {
                 $lrn = trim($row[0] ?? '');
@@ -495,7 +513,11 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'stu
                 }
 
                 $qr_code = 'STU-' . $lrn;
-                $stmt->bind_param("ssiiiss", $lrn, $name, $resolved_school_id, $resolved_grade_id, $resolved_section_id, $guardian, $qr_code);
+                if ($import_active_from) {
+                    $stmt->bind_param("ssiiisss", $lrn, $name, $resolved_school_id, $resolved_grade_id, $resolved_section_id, $guardian, $qr_code, $import_active_from);
+                } else {
+                    $stmt->bind_param("ssiiiss", $lrn, $name, $resolved_school_id, $resolved_grade_id, $resolved_section_id, $guardian, $qr_code);
+                }
                 if ($stmt->execute()) { $imported++; }
                 else { $skipped++; $errors_list[] = "Row " . ($i + 2) . ": " . $stmt->error; }
             }
@@ -505,7 +527,7 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'stu
         }
 
         @unlink($tmp_file);
-        unset($_SESSION['import_tmp_file'], $_SESSION['import_ext'], $_SESSION['import_school_id'], $_SESSION['import_grade_level_id'], $_SESSION['import_section_id'], $_SESSION['import_type']);
+        unset($_SESSION['import_tmp_file'], $_SESSION['import_ext'], $_SESSION['import_school_id'], $_SESSION['import_grade_level_id'], $_SESSION['import_section_id'], $_SESSION['import_active_from'], $_SESSION['import_type']);
     }
 }
 
@@ -599,7 +621,7 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'shs
         }
 
         @unlink($tmp_file);
-        unset($_SESSION['import_tmp_file'], $_SESSION['import_ext'], $_SESSION['import_type']);
+        unset($_SESSION['import_tmp_file'], $_SESSION['import_ext'], $_SESSION['import_active_from'], $_SESSION['import_type']);
     }
 }
 
@@ -716,7 +738,7 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'tea
         }
 
         @unlink($tmp_file);
-        unset($_SESSION['import_tmp_file'], $_SESSION['import_ext'], $_SESSION['import_school_id'], $_SESSION['import_type']);
+        unset($_SESSION['import_tmp_file'], $_SESSION['import_ext'], $_SESSION['import_school_id'], $_SESSION['import_active_from'], $_SESSION['import_type']);
     }
 }
 
@@ -730,6 +752,13 @@ if ($show_preview) {
     if ($active_tab === 'students') {
         foreach ($grades as $g) { if ($g['id'] == ($_SESSION['import_grade_level_id'] ?? 0)) $preview_grade = $g['name']; }
         foreach ($sections as $s) { if ($s['id'] == ($_SESSION['import_section_id'] ?? 0)) $preview_section = $s['name']; }
+    }
+
+    // Determine preview active_from (session or system default)
+    $preview_active_from = $_SESSION['import_active_from'] ?? null;
+    if (empty($preview_active_from)) {
+        $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
+        if ($r && $row = $r->fetch_assoc()) $preview_active_from = $row['setting_value'] ?: null;
     }
 }
 ?>
@@ -808,6 +837,9 @@ if ($show_preview) {
                 <?php endif; ?>
                 <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:0.82rem;">
                     <span style="color:var(--text-muted);">Total Rows:</span> <strong><?= count($preview_data) ?></strong>
+                </div>
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:0.82rem;">
+                    <span style="color:var(--text-muted);">Active From:</span> <strong><?= $preview_active_from ? htmlspecialchars($preview_active_from) : '<span style="color:var(--text-muted);">Not set</span>' ?></strong>
                 </div>
             </div>
 
@@ -936,6 +968,10 @@ if ($show_preview) {
                             <p style="font-size:0.78rem;color:var(--text-muted);">Supports .xlsx and .csv files</p>
                         </div>
                         <input type="file" name="import_file" id="stu_file_input" accept=".csv,.xlsx" required style="display:none;" onchange="document.getElementById('stu_file_label').textContent = this.files[0]?.name || 'Click to select or drag & drop'">
+                    </div>
+                    <div class="form-group">
+                        <label>Active from (optional) <span style="font-size:0.75rem;color:var(--text-muted);">(date when imported students should start counting as enrolled)</span></label>
+                        <input type="date" name="import_active_from" class="form-control" />
                     </div>
                     <button type="submit" name="preview" class="btn btn-primary" style="width:100%;"><i class="fas fa-eye"></i> Preview Data</button>
                 </form>
