@@ -403,7 +403,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             foreach ($schools as $sch) {
                 $key = 'launch_start_date_school_' . $sch['id'];
                 $date = $sys[$key] ?? $globalLaunch;
-                $schoolLaunchRows[] = ['school' => $sch['name'], 'date' => $date ?: ''];
+                $schoolLaunchRows[] = ['id' => $sch['id'], 'school' => $sch['name'], 'date' => $date ?: ''];
             }
         ?>
         <div class="card" style="margin-top:24px;">
@@ -425,7 +425,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                                 <td>
                                     <form method="POST" style="display:flex;gap:8px;align-items:center;">
                                         <input type="hidden" name="school_id" value="<?= $row['id'] ?>">
-                                        <input type="date" name="school_launch_date" value="<?= htmlspecialchars($row['per'] ?: $sys['launch_start_date'] ?? '') ?>" style="flex:1;">
+                                        <input type="date" name="school_launch_date" value="<?= htmlspecialchars($row['date'] ?: ($sys['launch_start_date'] ?? '')) ?>" style="flex:1;">
                                         <button type="submit" name="set_school_launch" class="btn" style="padding:6px 10px;background:#10b981;color:#fff;border-radius:8px;border:none;">Set</button>
                                         <button type="submit" name="clear_school_launch" class="btn" style="padding:6px 10px;background:#ef4444;color:#fff;border-radius:8px;border:none;">Clear</button>
                                     </form>
