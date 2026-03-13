@@ -1,47 +1,16 @@
 package com.sdosipalay.qrattendance;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.DownloadManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Message;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.webkit.CookieManager;
-import android.webkit.DownloadListener;
-import android.webkit.GeolocationPermissions;
-import android.webkit.JsResult;
-import android.webkit.JsPromptResult;
-import android.webkit.PermissionRequest;
-import android.webkit.URLUtil;
-import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -49,76 +18,47 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.fragment.app.Fragment;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import java.util.concurrent.TimeUnit;
 
-/**
- * ══════════════════════════════════════════════════════════════════
- * MAIN ACTIVITY — Full-featured WebView wrapper
- * ══════════════════════════════════════════════════════════════════
- * Loads the dashboard inside a WebView with session cookie from
- * the native LoginActivity.
- *
- * Features:
- *   - Pull-to-refresh
- *   - Offline detection with retry
- *   - Camera permission for QR scanning
- *   - File upload (<input type="file">, camera capture)
- *   - File download (CSV exports, reports, etc.)
- *   - JavaScript alert / confirm / prompt dialogs
- *   - window.open support
- *   - Geolocation permission
- *   - Background absence-check notifications via WorkManager
- */
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final int CAMERA_PERMISSION_REQUEST = 100;
-    private static final int FILE_CHOOSER_REQUEST = 200;
-    private static final String PREFS_NAME = "QRAttendancePrefs";
     private static final String WELCOME_CHANNEL_ID = "welcome_channel";
     private static final int WELCOME_NOTIFICATION_ID = 2000;
 
-    private WebView webView;
-    private ProgressBar progressBar;
-    private SwipeRefreshLayout swipeRefresh;
-    private View offlineView;
-    private Button retryButton;
-    private TextView logoutOfflineBtn;
+    private BottomNavigationView bottomNav;
+    private SessionManager sessionManager;
+    private ApiClient apiClient;
 
-    // File upload
-    private ValueCallback<Uri[]> fileUploadCallback;
-    private String cameraPhotoPath;
+    private final DashboardFragment dashboardFragment = new DashboardFragment();
+    private final AttendanceFragment attendanceFragment = new AttendanceFragment();
+    // Removed ScannerFragment (camera scanner)
+    private final SchoolsFragment schoolsFragment = new SchoolsFragment();
+    private final ReportsFragment reportsFragment = new ReportsFragment();
+    private Fragment activeFragment;
 
-    private String pendingUrl;
-
-    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Edge-to-edge: transparent status bar that does not overlap WebView
+        // Status bar
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.bg_primary));
             getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         }
 
-        // Request notification permission (Android 13+)
+        // Notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -127,31 +67,91 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Find views
-        webView = findViewById(R.id.webView);
-        progressBar = findViewById(R.id.progressBar);
-        swipeRefresh = findViewById(R.id.swipeRefresh);
-        offlineView = findViewById(R.id.offlineView);
-        retryButton = findViewById(R.id.retryButton);
-        logoutOfflineBtn = findViewById(R.id.logoutOfflineBtn);
+        sessionManager = new SessionManager(this);
+        apiClient = new ApiClient(BuildConfig.BASE_URL, sessionManager.getSessionCookie());
 
-        setupWebView();
-        setupSwipeRefresh();
-        setupButtons();
-        loadApp();
+        bottomNav = findViewById(R.id.bottomNav);
+        setupFragments();
+        setupBottomNav();
         scheduleAbsenceCheck();
         showWelcomeNotification();
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  WELCOME NOTIFICATION
-    // ═══════════════════════════════════════════════════════════
+    public ApiClient getApiClient() {
+        return apiClient;
+    }
+
+    public SessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    private void setupFragments() {
+        // Add all fragments, hide all except dashboard
+        getSupportFragmentManager().beginTransaction()
+            .add(R.id.fragmentContainer, reportsFragment, "reports").hide(reportsFragment)
+            .add(R.id.fragmentContainer, schoolsFragment, "schools").hide(schoolsFragment)
+            .add(R.id.fragmentContainer, attendanceFragment, "attendance").hide(attendanceFragment)
+            .add(R.id.fragmentContainer, dashboardFragment, "dashboard")
+            .commit();
+        activeFragment = dashboardFragment;
+    }
+
+    private void setupBottomNav() {
+        bottomNav.setOnItemSelectedListener(item -> {
+            Fragment selected = null;
+            int id = item.getItemId();
+
+            if (id == R.id.nav_dashboard) selected = dashboardFragment;
+            else if (id == R.id.nav_attendance) selected = attendanceFragment;
+            // Removed scanner tab
+            else if (id == R.id.nav_schools) selected = schoolsFragment;
+            else if (id == R.id.nav_reports) selected = reportsFragment;
+
+            if (selected != null && selected != activeFragment) {
+                getSupportFragmentManager().beginTransaction()
+                    .hide(activeFragment)
+                    .show(selected)
+                    .commit();
+                activeFragment = selected;
+            }
+            return true;
+        });
+    }
+
+    public void logout() {
+        sessionManager.logout();
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    private void scheduleAbsenceCheck() {
+        Constraints constraints = new Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build();
+
+        PeriodicWorkRequest absenceWork = new PeriodicWorkRequest.Builder(
+                AbsenceCheckWorker.class, 30, TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .addTag("absence_check")
+            .build();
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "absence_check_periodic",
+            ExistingPeriodicWorkPolicy.KEEP,
+            absenceWork
+        );
+    }
 
     private void showWelcomeNotification() {
         String fullName = getIntent().getStringExtra("user_full_name");
+        if (fullName == null || fullName.isEmpty()) {
+            fullName = sessionManager.getFullName();
+        }
         if (fullName == null || fullName.isEmpty()) return;
 
-        // Create notification channel (Android 8+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                 WELCOME_CHANNEL_ID, "Welcome", NotificationManager.IMPORTANCE_DEFAULT);
@@ -160,7 +160,6 @@ public class MainActivity extends AppCompatActivity {
             if (nm != null) nm.createNotificationChannel(channel);
         }
 
-        // Build the notification
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
@@ -180,496 +179,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  SCHEDULE BACKGROUND ABSENCE NOTIFICATIONS
-    // ═══════════════════════════════════════════════════════════
-
-    private void scheduleAbsenceCheck() {
-        Constraints constraints = new Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build();
-
-        // Check every 30 minutes (minimum WorkManager interval is 15 min)
-        PeriodicWorkRequest absenceWork = new PeriodicWorkRequest.Builder(
-                AbsenceCheckWorker.class, 30, TimeUnit.MINUTES)
-            .setConstraints(constraints)
-            .addTag("absence_check")
-            .build();
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "absence_check_periodic",
-            ExistingPeriodicWorkPolicy.KEEP,
-            absenceWork
-        );
-
-        Log.d(TAG, "Absence check worker scheduled (every 30 min)");
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  WEBVIEW SETUP
-    // ═══════════════════════════════════════════════════════════
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private void setupWebView() {
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setSupportZoom(false);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setSupportMultipleWindows(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " QRAttendanceApp/1.0");
-
-        // Cookies
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(webView, true);
-
-        // ── WebViewClient ──
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                progressBar.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                progressBar.setVisibility(View.GONE);
-                swipeRefresh.setRefreshing(false);
-                hideOffline();
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    progressBar.setVisibility(View.GONE);
-                    swipeRefresh.setRefreshing(false);
-                    showOffline();
-                }
-            }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String url = request.getUrl().toString();
-
-                // Detect logout
-                if (url.contains("logout.php") || url.contains("app_login.php")) {
-                    logout();
-                    return true;
-                }
-
-                // Handle tel: mailto: sms:
-                if (url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("sms:")) {
-                    try {
-                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                    } catch (ActivityNotFoundException e) {
-                        Log.w(TAG, "No handler for: " + url);
-                    }
-                    return true;
-                }
-
-                // Keep server URLs in WebView
-                String baseHost = Uri.parse(BuildConfig.BASE_URL).getHost();
-                if (url.contains(baseHost) ||
-                    url.contains("192.168.") || url.contains("localhost") ||
-                    url.contains("Qr based System") || url.contains("Qr%20based")) {
-                    return false;
-                }
-
-                // External links → browser
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl()));
-                } catch (ActivityNotFoundException e) {
-                    Log.w(TAG, "No browser for: " + url);
-                }
-                return true;
-            }
-        });
-
-        // ── WebChromeClient (full-featured) ──
-        webView.setWebChromeClient(new WebChromeClient() {
-
-            @Override
-            public void onProgressChanged(WebView view, int newProgress) {
-                progressBar.setProgress(newProgress);
-                if (newProgress >= 100) progressBar.setVisibility(View.GONE);
-            }
-
-            // ── FILE UPLOAD (<input type="file">) ──
-            @Override
-            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
-                                             FileChooserParams fileChooserParams) {
-                if (fileUploadCallback != null) {
-                    fileUploadCallback.onReceiveValue(null);
-                }
-                fileUploadCallback = filePathCallback;
-
-                String[] acceptTypes = fileChooserParams.getAcceptTypes();
-                boolean acceptsImage = false;
-                boolean acceptsAny = (acceptTypes == null || acceptTypes.length == 0 ||
-                    (acceptTypes.length == 1 && acceptTypes[0].isEmpty()));
-
-                if (!acceptsAny) {
-                    for (String type : acceptTypes) {
-                        if (type.startsWith("image/")) { acceptsImage = true; break; }
-                    }
-                }
-
-                // Build file picker intent
-                Intent fileIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                fileIntent.addCategory(Intent.CATEGORY_OPENABLE);
-                if (acceptsAny) {
-                    fileIntent.setType("*/*");
-                } else {
-                    fileIntent.setType(acceptTypes[0]);
-                    if (acceptTypes.length > 1) fileIntent.putExtra(Intent.EXTRA_MIME_TYPES, acceptTypes);
-                }
-                if (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
-                    fileIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                }
-
-                Intent chooserIntent = Intent.createChooser(fileIntent, "Choose File");
-
-                // Add camera option for image inputs
-                if (acceptsImage || acceptsAny) {
-                    try {
-                        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-                            File photoFile = createImageFile();
-                            cameraPhotoPath = photoFile.getAbsolutePath();
-                            Uri photoUri = FileProvider.getUriForFile(
-                                MainActivity.this,
-                                getApplicationContext().getPackageName() + ".fileprovider",
-                                photoFile);
-                            cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-                            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "Create image file failed", e);
-                    }
-                }
-
-                try {
-                    startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST);
-                } catch (ActivityNotFoundException e) {
-                    fileUploadCallback = null;
-                    Toast.makeText(MainActivity.this, "No file manager found", Toast.LENGTH_SHORT).show();
-                    return false;
-                }
-                return true;
-            }
-
-            // ── CAMERA / MEDIA PERMISSIONS ──
-            @Override
-            public void onPermissionRequest(final PermissionRequest request) {
-                runOnUiThread(() -> {
-                    String[] resources = request.getResources();
-                    for (String resource : resources) {
-                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
-                            if (checkCameraPermission()) {
-                                request.grant(new String[]{resource});
-                            } else {
-                                requestCameraPermission();
-                            }
-                            return;
-                        }
-                        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
-                            request.grant(new String[]{resource});
-                            return;
-                        }
-                    }
-                    request.grant(resources);
-                });
-            }
-
-            // ── GEOLOCATION ──
-            @Override
-            public void onGeolocationPermissionsShowPrompt(String origin,
-                    GeolocationPermissions.Callback callback) {
-                callback.invoke(origin, true, false);
-            }
-
-            // ── JAVASCRIPT ALERT ──
-            @Override
-            public boolean onJsAlert(WebView view, String url, String message, final JsResult result) {
-                new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Alert")
-                    .setMessage(message)
-                    .setPositiveButton("OK", (d, w) -> result.confirm())
-                    .setCancelable(false)
-                    .show();
-                return true;
-            }
-
-            // ── JAVASCRIPT CONFIRM ──
-            @Override
-            public boolean onJsConfirm(WebView view, String url, String message, final JsResult result) {
-                new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Confirm")
-                    .setMessage(message)
-                    .setPositiveButton("OK", (d, w) -> result.confirm())
-                    .setNegativeButton("Cancel", (d, w) -> result.cancel())
-                    .setCancelable(false)
-                    .show();
-                return true;
-            }
-
-            // ── JAVASCRIPT PROMPT ──
-            @Override
-            public boolean onJsPrompt(WebView view, String url, String message,
-                                       String defaultValue, final JsPromptResult result) {
-                final EditText input = new EditText(MainActivity.this);
-                input.setText(defaultValue);
-                input.setPadding(50, 30, 50, 30);
-                new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Input")
-                    .setMessage(message)
-                    .setView(input)
-                    .setPositiveButton("OK", (d, w) -> result.confirm(input.getText().toString()))
-                    .setNegativeButton("Cancel", (d, w) -> result.cancel())
-                    .setCancelable(false)
-                    .show();
-                return true;
-            }
-
-            // ── WINDOW.OPEN ──
-            @Override
-            public boolean onCreateWindow(WebView view, boolean isDialog,
-                                          boolean isUserGesture, Message resultMsg) {
-                WebView.HitTestResult hitResult = view.getHitTestResult();
-                String url = hitResult.getExtra();
-                if (url != null) {
-                    view.loadUrl(url);
-                } else {
-                    WebView tempWebView = new WebView(MainActivity.this);
-                    tempWebView.setWebViewClient(new WebViewClient() {
-                        @Override
-                        public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
-                            webView.loadUrl(request.getUrl().toString());
-                            return true;
-                        }
-                    });
-                    WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                    transport.setWebView(tempWebView);
-                    resultMsg.sendToTarget();
-                    return true;
-                }
-                return false;
-            }
-
-            @Override
-            public void onCloseWindow(WebView window) { }
-        });
-
-        // ── DOWNLOAD LISTENER (CSV exports, reports, etc.) ──
-        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
-            try {
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-
-                // Pass cookies so authenticated downloads work
-                String cookies = CookieManager.getInstance().getCookie(url);
-                if (cookies != null) request.addRequestHeader("Cookie", cookies);
-                request.addRequestHeader("User-Agent", userAgent);
-
-                String filename = URLUtil.guessFileName(url, contentDisposition, mimeType);
-                request.setTitle(filename);
-                request.setDescription("Downloading...");
-                request.setMimeType(mimeType);
-                request.allowScanningByMediaScanner();
-                request.setNotificationVisibility(
-                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename);
-
-                DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                if (dm != null) {
-                    dm.enqueue(request);
-                    Toast.makeText(MainActivity.this, "Downloading: " + filename, Toast.LENGTH_SHORT).show();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Download failed", e);
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                } catch (ActivityNotFoundException ex) {
-                    Toast.makeText(MainActivity.this, "Cannot download file", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  SWIPE TO REFRESH
-    // ═══════════════════════════════════════════════════════════
-
-    private void setupSwipeRefresh() {
-        swipeRefresh.setColorSchemeColors(ContextCompat.getColor(this, R.color.orange_500));
-        swipeRefresh.setOnRefreshListener(() -> {
-            if (isNetworkAvailable()) {
-                webView.reload();
-            } else {
-                swipeRefresh.setRefreshing(false);
-                showOffline();
-            }
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  BUTTONS
-    // ═══════════════════════════════════════════════════════════
-
-    private void setupButtons() {
-        retryButton.setOnClickListener(v -> {
-            if (isNetworkAvailable()) { hideOffline(); webView.reload(); }
-        });
-        if (logoutOfflineBtn != null) {
-            logoutOfflineBtn.setOnClickListener(v -> logout());
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  LOAD APP WITH SESSION COOKIE
-    // ═══════════════════════════════════════════════════════════
-
-    private void loadApp() {
-        String baseUrl = BuildConfig.BASE_URL;
-        pendingUrl = baseUrl + "app_dashboard.php";
-
-        String sessionCookie = getIntent().getStringExtra("session_cookie");
-        if (sessionCookie != null && !sessionCookie.isEmpty()) {
-            CookieManager cm = CookieManager.getInstance();
-            cm.setCookie(baseUrl, sessionCookie);
-            cm.flush();
-        }
-
-        if (isNetworkAvailable()) {
-            webView.loadUrl(pendingUrl);
-        } else {
-            showOffline();
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  FILE UPLOAD RESULT
-    // ═══════════════════════════════════════════════════════════
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == FILE_CHOOSER_REQUEST) {
-            if (fileUploadCallback == null) return;
-            Uri[] results = null;
-
-            if (resultCode == RESULT_OK) {
-                if (data != null) {
-                    if (data.getClipData() != null) {
-                        int count = data.getClipData().getItemCount();
-                        results = new Uri[count];
-                        for (int i = 0; i < count; i++) {
-                            results[i] = data.getClipData().getItemAt(i).getUri();
-                        }
-                    } else if (data.getDataString() != null) {
-                        results = new Uri[]{Uri.parse(data.getDataString())};
-                    }
-                }
-                // Camera capture fallback
-                if (results == null && cameraPhotoPath != null) {
-                    File photoFile = new File(cameraPhotoPath);
-                    if (photoFile.exists() && photoFile.length() > 0) {
-                        results = new Uri[]{Uri.fromFile(photoFile)};
-                    }
-                }
-            }
-
-            fileUploadCallback.onReceiveValue(results);
-            fileUploadCallback = null;
-            cameraPhotoPath = null;
-        }
-    }
-
-    // ── Create temp image file for camera capture ──
-    private File createImageFile() throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        return File.createTempFile("QR_" + timeStamp + "_", ".jpg", storageDir);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  CAMERA PERMISSION
-    // ═══════════════════════════════════════════════════════════
-
-    private boolean checkCameraPermission() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void requestCameraPermission() {
-        ActivityCompat.requestPermissions(this,
-            new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-            @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_REQUEST) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                webView.reload();
-            }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  HELPERS
-    // ═══════════════════════════════════════════════════════════
-
-    private boolean isNetworkAvailable() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-        if (cm != null) {
-            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-            return activeNetwork != null && activeNetwork.isConnected();
-        }
-        return false;
-    }
-
-    private void showOffline() {
-        offlineView.setVisibility(View.VISIBLE);
-        webView.setVisibility(View.GONE);
-    }
-
-    private void hideOffline() {
-        offlineView.setVisibility(View.GONE);
-        webView.setVisibility(View.VISIBLE);
-    }
-
-    private void logout() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().clear().apply();
-        CookieManager.getInstance().removeAllCookies(null);
-        CookieManager.getInstance().flush();
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  BACK BUTTON
-    // ═══════════════════════════════════════════════════════════
-
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
+        if (bottomNav.getSelectedItemId() != R.id.nav_dashboard) {
+            bottomNav.setSelectedItemId(R.id.nav_dashboard);
         } else {
             new AlertDialog.Builder(this)
                 .setTitle("Exit App")
@@ -678,29 +191,5 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", null)
                 .show();
         }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    //  LIFECYCLE
-    // ═══════════════════════════════════════════════════════════
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        webView.onResume();
-        CookieManager.getInstance().flush();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        webView.onPause();
-        CookieManager.getInstance().flush();
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (webView != null) webView.destroy();
-        super.onDestroy();
     }
 }

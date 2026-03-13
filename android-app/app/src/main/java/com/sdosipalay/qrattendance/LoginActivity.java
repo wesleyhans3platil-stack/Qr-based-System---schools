@@ -200,13 +200,12 @@ public class LoginActivity extends AppCompatActivity {
                         if (json.optBoolean("success", false)) {
                             final String finalCookie = sessionCookie;
                             final String fullName = json.optString("full_name", "");
+                            final String role = json.optString("role", "");
+                            final int schoolId = json.optInt("school_id", 0);
+                            final int adminId = json.optInt("admin_id", 0);
                             runOnUiThread(() -> {
-                                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                                prefs.edit()
-                                    .putBoolean(KEY_LOGGED_IN, true)
-                                    .putString(KEY_SESSION_COOKIE, finalCookie)
-                                    .putString(KEY_USER_NAME, fullName)
-                                    .apply();
+                                SessionManager session = new SessionManager(LoginActivity.this);
+                                session.saveLogin(finalCookie, fullName, role, schoolId, adminId);
                                 goToMain(finalCookie, fullName);
                             });
                             return;
@@ -240,11 +239,8 @@ public class LoginActivity extends AppCompatActivity {
                     if (location != null && location.contains("dashboard")) {
                         final String finalCookie2 = sessionCookie;
                         runOnUiThread(() -> {
-                            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                            prefs.edit()
-                                .putBoolean(KEY_LOGGED_IN, true)
-                                .putString(KEY_SESSION_COOKIE, finalCookie2)
-                                .apply();
+                            SessionManager session = new SessionManager(LoginActivity.this);
+                            session.saveLogin(finalCookie2, "", "", 0, 0);
                             goToMain(finalCookie2, null);
                         });
                         return;
