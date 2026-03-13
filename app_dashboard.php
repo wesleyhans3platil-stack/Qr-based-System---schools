@@ -942,8 +942,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             data: {
                 labels: trendData.map(d => d.date),
                 datasets: [
-                    { label: 'Present', data: trendData.map(d => d.present), backgroundColor: 'rgba(5,150,105,.7)', borderRadius: 4, barPercentage: .55 },
-                    { label: 'Absent', data: trendData.map(d => d.absent), backgroundColor: 'rgba(220,38,38,.6)', borderRadius: 4, barPercentage: .55 }
+                    { label: 'Present', data: trendData.map(d => d.present), backgroundColor: 'rgba(5,150,105,.7)', borderRadius: 4, barPercentage: .6, categoryPercentage: 0.65 },
+                    { label: 'Absent', data: trendData.map(d => d.absent), backgroundColor: 'rgba(220,38,38,.6)', borderRadius: 4, barPercentage: .6, categoryPercentage: 0.65 }
                 ]
             },
             options: {
@@ -951,8 +951,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
                 maintainAspectRatio: false,
                 plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, family: 'Inter', weight: '600' } } } },
                 scales: {
-                    x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9, family: 'Inter' } } },
-                    y: { stacked: true, beginAtZero: true, grid: { color: '#e2e8f0' }, ticks: { font: { size: 9 }, stepSize: 1 } }
+                    x: { stacked: false, grid: { display: false }, ticks: { font: { size: 9, family: 'Inter' } } },
+                    y: { stacked: false, beginAtZero: true, grid: { color: '#e2e8f0' }, ticks: { font: { size: 9 }, stepSize: 1 } }
                 }
             }
         });
