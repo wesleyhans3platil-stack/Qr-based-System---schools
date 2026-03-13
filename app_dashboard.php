@@ -400,8 +400,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .nav-item i{font-size:1.05rem;z-index:1;transition:transform .15s, color .2s}
         .nav-item span{z-index:1}
         .nav-item.active{color:#022c22}
-        .nav-item .pill{position:absolute;top:8px;left:50%;width:40px;height:22px;border-radius:12px;background:var(--green-c);opacity:0;transform:translateX(-50%) scale(0.9);transition:opacity .25s ease, transform .25s ease}
-        .nav-item.active .pill{opacity:1;transform:translateX(-50%) scale(1)}
+        .nav-item .pill{position:absolute;top:10px;left:50%;width:28px;height:6px;border-radius:999px;background:var(--green-c);opacity:0;transform:translateX(-50%) scaleX(0.8);transition:opacity .25s ease, transform .25s ease}
+        .nav-item.active .pill{opacity:1;transform:translateX(-50%) scaleX(1)}
         .nav-item:active i{transform:scale(.85)}
 
         /* ═══ Filter Panel ═══ */
