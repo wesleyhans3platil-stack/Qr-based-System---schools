@@ -14,6 +14,10 @@
     const isInAdmin = window.location.pathname.includes('/admin/');
     const apiBase = isInAdmin ? '../api/' : 'api/';
 
+    // Toggle whether the little "Live" status pill shows on the page
+    // Set to false to remove the green "Live" indicator.
+    const SHOW_LIVE_INDICATOR = false;
+
     // Pages that should NOT auto-refresh (forms, settings, edit pages)
     const noRefreshPages = ['settings', 'register_user', 'bulk_import', 'print_qr', 'shs_students'];
     const currentPath = window.location.pathname;
@@ -104,6 +108,7 @@
     }
 
     function showSyncFlash() {
+        if (!SHOW_LIVE_INDICATOR) return;
         const indicator = document.getElementById('realtimeIndicator');
         if (indicator) {
             indicator.style.color = '#16a34a';
@@ -116,6 +121,8 @@
     }
 
     function updateSyncIndicator(connected, serverTime) {
+        if (!SHOW_LIVE_INDICATOR) return;
+
         let indicator = document.getElementById('realtimeIndicator');
         if (!indicator) {
             indicator = document.createElement('div');
