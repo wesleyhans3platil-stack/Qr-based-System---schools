@@ -167,6 +167,28 @@ if (isset($_POST['remove_logo'])) {
     $success = 'Logo removed.';
 }
 
+// Handle per-school launch date set/clear
+if (isset($_POST['set_school_launch'])) {
+    $school_id = intval($_POST['school_id'] ?? 0);
+    $date = trim($_POST['school_launch_date'] ?? '');
+    if ($school_id && $date) {
+        $key = 'launch_start_date_school_' . $school_id;
+        $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+        $stmt->bind_param("sss", $key, $date, $date);
+        $stmt->execute();
+        $success = 'School launch date saved.';
+    }
+}
+
+if (isset($_POST['clear_school_launch'])) {
+    $school_id = intval($_POST['school_id'] ?? 0);
+    if ($school_id) {
+        $key = 'launch_start_date_school_' . $school_id;
+        $conn->query("DELETE FROM system_settings WHERE setting_key='" . $conn->real_escape_string($key) . "'");
+        $success = 'School launch date cleared.';
+    }
+}
+
 // Handle system settings update
 if (isset($_POST['update_system'])) {
     $fields = ['division_name', 'system_name', 'sms_api_key', 'notification_numbers', 'google_client_id'];
@@ -177,7 +199,7 @@ if (isset($_POST['update_system'])) {
         $stmt->execute();
     }
 
-    // Launch start date (optional)
+    // Launch start date (optional). Default to today if blank.
     $launch_scope = $_POST['launch_scope'] ?? 'all';
     $launch_start = trim($_POST['launch_start_date'] ?? '');
     if ($launch_start === '') {
@@ -386,15 +408,28 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
         ?>
         <div class="card" style="margin-top:24px;">
             <div class="card-title"><i class="fas fa-school"></i> Launch Date by School</div>
-            <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">Shows the launch date effective for each school (blank means not set).</p>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">Set a school-specific launch date here (or leave blank to use the global launch date).</p>
             <div class="table-wrapper">
                 <table>
-                    <thead><tr><th>School</th><th>Launch Date</th></tr></thead>
+                    <thead><tr><th>School</th><th>Launch Date</th><th style="width:170px;">Actions</th></tr></thead>
                     <tbody>
                         <?php foreach ($schoolLaunchRows as $row): ?>
                             <tr>
                                 <td><?= htmlspecialchars($row['school']) ?></td>
-                                <td style="font-weight:600;"><?= $row['date'] ? htmlspecialchars($row['date']) : '<span style="color:#6b7280;">(not set)</span>' ?></td>
+                                <td style="font-weight:600;">
+                                    <?= $row['date'] ? htmlspecialchars($row['date']) : '<span style="color:#6b7280;">(not set)</span>' ?>
+                                    <?php if ($row['date'] && $row['date'] === ($sys['launch_start_date'] ?? '')): ?>
+                                        <span style="font-size:0.75rem;color:#6b7280;">(global)</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <form method="POST" style="display:flex;gap:8px;align-items:center;">
+                                        <input type="hidden" name="school_id" value="<?= $row['id'] ?>">
+                                        <input type="date" name="school_launch_date" value="<?= htmlspecialchars($row['per'] ?: $sys['launch_start_date'] ?? '') ?>" style="flex:1;">
+                                        <button type="submit" name="set_school_launch" class="btn" style="padding:6px 10px;background:#10b981;color:#fff;border-radius:8px;border:none;">Set</button>
+                                        <button type="submit" name="clear_school_launch" class="btn" style="padding:6px 10px;background:#ef4444;color:#fff;border-radius:8px;border:none;">Clear</button>
+                                    </form>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
