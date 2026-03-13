@@ -169,7 +169,7 @@ if (isset($_POST['remove_logo'])) {
 
 // Handle system settings update
 if (isset($_POST['update_system'])) {
-    $fields = ['division_name', 'system_name', 'sds_name', 'sds_mobile', 'asds_name', 'asds_mobile', 'sms_api_key', 'notification_numbers', 'google_client_id'];
+    $fields = ['division_name', 'system_name', 'sms_api_key', 'notification_numbers', 'google_client_id'];
     foreach ($fields as $f) {
         $val = trim($_POST[$f] ?? '');
         $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
@@ -223,6 +223,14 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
         <div class="page-header">
             <h1><i class="fas fa-cog" style="color:var(--primary);margin-right:8px;"></i> System Settings</h1>
             <p>Configure time windows and manage admin accounts</p>
+        </div>
+
+        <?php // Highlight launch start date for easy visibility ?>
+        <div style="margin-bottom:16px;">
+            <div style="display:inline-flex;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;background:#eff6ff;border:1px solid #bfdbfe;">
+                <span style="font-size:0.95rem;font-weight:700;color:#1e40af;"><i class="fas fa-flag" style="margin-right:6px;color:#1d4ed8;"></i> Launch Start Date</span>
+                <span style="font-size:0.95rem;color:#0f172a;"><?= !empty($sys['launch_start_date']) ? htmlspecialchars($sys['launch_start_date']) : '<span style="color:#dc2626;font-weight:700;">Not set</span>' ?></span>
+            </div>
         </div>
 
         <?php // Show current Launch Start Date prominently for super-admins ?>
@@ -314,14 +322,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <small style="color:var(--text-muted);display:block;margin-top:6px;">If set, new imports without an "Active from" date will default to this launch date.</small>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-                    <div class="form-row">
-                        <div class="form-group"><label>SDS Name</label><input type="text" name="sds_name" class="form-control" value="<?= htmlspecialchars($sys['sds_name'] ?? '') ?>" placeholder="Full name of SDS"></div>
-                        <div class="form-group"><label>SDS Mobile</label><input type="text" name="sds_mobile" class="form-control" value="<?= htmlspecialchars($sys['sds_mobile'] ?? '') ?>" placeholder="09171234567"></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>ASDS Name</label><input type="text" name="asds_name" class="form-control" value="<?= htmlspecialchars($sys['asds_name'] ?? '') ?>" placeholder="Full name of ASDS"></div>
-                        <div class="form-group"><label>ASDS Mobile</label><input type="text" name="asds_mobile" class="form-control" value="<?= htmlspecialchars($sys['asds_mobile'] ?? '') ?>" placeholder="09171234567"></div>
-                    </div>
                     <button type="submit" name="update_system" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save System Settings</button>
                 </form>
             </div>
