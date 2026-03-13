@@ -5,6 +5,10 @@ $current_page = $current_page ?? '';
 $admin_role = $_SESSION['admin_role'] ?? 'super_admin';
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 
+// Detect app WebView (used by the Android app) to hide sidebar hamburger toggle
+$ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+$isApp = (stripos($ua, 'QRAttendanceApp') !== false) || (stripos($ua, 'wv') !== false && stripos($ua, 'Android') !== false);
+
 // Force password change redirect
 if (!empty($_SESSION['force_password_change'])) {
     header('Location: ../change_password.php');
@@ -180,4 +184,7 @@ if ($__sl_r && $__sl_row = $__sl_r->fetch_assoc()) {
 @media print {
     .mobile-menu-toggle { display: none !important; }
 }
+<?php if ($isApp): ?>
+.mobile-menu-toggle { display: none !important; }
+<?php endif; ?>
 </style>
