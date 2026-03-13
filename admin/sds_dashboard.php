@@ -29,7 +29,7 @@ $r = $conn->query("SELECT COUNT(*) as cnt FROM schools WHERE status='active'");
 if ($r) $total_schools = $r->fetch_assoc()['cnt'];
 
 $total_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND (DATE(created_at) < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))");
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students");
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
 
 $total_teachers = 0;
@@ -76,7 +76,7 @@ if ($r) while ($row = $r->fetch_assoc()) $present_teachers_list[] = $row;
 // Per-school data
 $schools_data = [];
 $sql = "SELECT s.id, s.name, s.code, s.logo,
-        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND (DATE(st.created_at) < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as total_students,
+        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND (DATE(COALESCE(st.active_from, st.created_at)) < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as total_students,
         (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers,
         (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
         (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present

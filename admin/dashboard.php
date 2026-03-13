@@ -39,9 +39,11 @@ $r = $conn->query("SELECT COUNT(*) as cnt FROM schools WHERE status='active' $sc
 if ($r) $total_schools = $r->fetch_assoc()['cnt'];
 
 $total_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' " . str_replace('school_id', 's.school_id', $school_filter_sql));
-// Simpler query:
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = $admin_school_id" : ""));
+// Total students (active + inactive)
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students " . ($admin_role === 'principal' && $admin_school_id ? "WHERE school_id = $admin_school_id" : ""));
+if ($filter_school) {
+    $r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE school_id = $filter_school");
+}
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
 
 $total_teachers = 0;
@@ -58,9 +60,10 @@ $timed_out_today = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL $school_filter_sql $extra_filter");
 if ($r) $timed_out_today = $r->fetch_assoc()['cnt'];
 
-// Absent today (not scanned — exclude students created today unless they attended)
+// Absent today (not scanned — exclude students created/activated today unless they attended)
 $relevant_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND (DATE(created_at) < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)) " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = $admin_school_id " : "") . ($filter_school ? "AND school_id = $filter_school" : ""));
+$student_effective_date = "DATE(COALESCE(active_from, created_at))";
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND ($student_effective_date < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)) " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = $admin_school_id " : "") . ($filter_school ? "AND school_id = $filter_school" : ""));
 if ($r) $relevant_students = $r->fetch_assoc()['cnt'];
 $absent_today = max(0, $relevant_students - $timed_in_today);
 
@@ -90,7 +93,7 @@ $flag_sql = "SELECT s.id, s.lrn, s.name, sch.name as school_name, sch.code as sc
     LEFT JOIN grade_levels gl ON s.grade_level_id = gl.id
     LEFT JOIN sections sec ON s.section_id = sec.id
     WHERE s.status = 'active'
-    AND DATE(s.created_at) < '$filter_date'
+    AND DATE(COALESCE(s.active_from, s.created_at)) < '$filter_date'
     AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date')
     AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday')
     " . ($admin_role === 'principal' && $admin_school_id ? "AND s.school_id = $admin_school_id" : "") . "

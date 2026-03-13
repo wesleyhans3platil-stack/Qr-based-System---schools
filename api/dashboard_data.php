@@ -56,27 +56,11 @@ $r = $conn->query("SELECT COUNT(*) as cnt FROM schools WHERE status='active' $sc
 if ($r) $total_schools = $r->fetch_assoc()['cnt'];
 
 $total_students = 0;
-$student_effective_date = "DATE(COALESCE(active_from, created_at))";
-$student_effective_date_sub = "DATE(COALESCE(st.active_from, st.created_at))";
-if ($launch_start_date) {
-    $safe_launch = $conn->real_escape_string($launch_start_date);
-    $student_effective_date = "DATE(GREATEST(COALESCE(active_from, created_at), '$safe_launch'))";
-    $student_effective_date_sub = "DATE(GREATEST(COALESCE(st.active_from, st.created_at), '$safe_launch'))";
-}
-$school_launch_date = null;
-if ($filter_school) {
-    $key = 'launch_start_date_school_' . (int)$filter_school;
-    $r2 = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='" . $conn->real_escape_string($key) . "'");
-    if ($r2 && $row2 = $r2->fetch_assoc()) {
-        $school_launch_date = trim($row2['setting_value'] ?? '');
-    }
-}
-if ($school_launch_date) {
-    $safe_launch = $conn->real_escape_string($school_launch_date);
-    $student_effective_date = "DATE(GREATEST(COALESCE(active_from, created_at), '$safe_launch'))";
-    $student_effective_date_sub = "DATE(GREATEST(COALESCE(st.active_from, st.created_at), '$safe_launch'))";
-}
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND ($student_effective_date < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)) " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = " . (int)$admin_school_id : "") . ($filter_school ? " AND school_id = $filter_school" : ""));
+// Total students (active + inactive) for overall headcount.
+$studentCountSql = "SELECT COUNT(*) as cnt FROM students s " .
+    ($admin_role === 'principal' && $admin_school_id ? "WHERE s.school_id = " . (int)$admin_school_id : "") .
+    ($filter_school ? ($admin_role === 'principal' && $admin_school_id ? " AND" : "WHERE") . " s.school_id = $filter_school" : "");
+$r = $conn->query($studentCountSql);
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
 
 $total_teachers = 0;
@@ -84,14 +68,14 @@ $r = $conn->query("SELECT COUNT(*) as cnt FROM teachers WHERE status='active' " 
 if ($r) $total_teachers = $r->fetch_assoc()['cnt'];
 
 $timed_in_today = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL $school_filter_sql $extra_filter");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL $school_filter_sql $extra_filter");
 if ($r) $timed_in_today = $r->fetch_assoc()['cnt'];
 $timed_in_today = min($timed_in_today, $total_students);
 $absent_today = max(0, $total_students - $timed_in_today);
 $attendance_rate = $total_students > 0 ? min(100, round(($timed_in_today / $total_students) * 100, 1)) : 0;
 
 $timed_out_today = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL $school_filter_sql $extra_filter");
+$r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL $school_filter_sql $extra_filter");
 if ($r) $timed_out_today = $r->fetch_assoc()['cnt'];
 
 $teachers_in = 0;
@@ -124,6 +108,7 @@ $flag_sql = "SELECT s.id, s.lrn, s.name, s.created_at, s.active_from, s.school_i
     LEFT JOIN grade_levels gl ON s.grade_level_id = gl.id
     LEFT JOIN sections sec ON s.section_id = sec.id
     WHERE s.status = 'active'
+    AND s.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12'))
     AND $effective_student_date_expr < '$filter_date'
     AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
     AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)"
@@ -159,8 +144,8 @@ if ($r) {
 // Per-School Breakdown
 $school_breakdown = [];
 $school_sql = "SELECT s.id, s.name, s.code,
-    (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND ($student_effective_date_sub < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as enrolled,
-    (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
+    (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) AND ($student_effective_date_sub < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as enrolled,
+    (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
     (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present,
     (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers
     FROM schools s WHERE s.status='active' " . ($admin_role === 'principal' && $admin_school_id ? "AND s.id = " . (int)$admin_school_id : "") . "
@@ -189,10 +174,10 @@ for ($count = 0; $count < 7; $count++) {
     }
     $cnt = 0;
     $sf = ($admin_role === 'principal' && $admin_school_id ? " AND school_id=" . (int)$admin_school_id : "") . ($filter_school ? " AND school_id=$filter_school" : "");
-    $r2 = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$td' AND a.time_in IS NOT NULL $sf");
+    $r2 = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.date='$td' AND a.time_in IS NOT NULL $sf");
     if ($r2) $cnt = $r2->fetch_assoc()['cnt'];
     $day_total = 0;
-    $r2 = $conn->query("SELECT COUNT(*) as cnt FROM students st WHERE st.status='active' AND ($student_effective_date_sub <= '$td')" . ($admin_role === 'principal' && $admin_school_id ? " AND st.school_id=" . (int)$admin_school_id : "") . ($filter_school ? " AND st.school_id=$filter_school" : ""));
+    $r2 = $conn->query("SELECT COUNT(*) as cnt FROM students st WHERE st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) AND ($student_effective_date_sub <= '$td')" . ($admin_role === 'principal' && $admin_school_id ? " AND st.school_id=" . (int)$admin_school_id : "") . ($filter_school ? " AND st.school_id=$filter_school" : ""));
     if ($r2) $day_total = $r2->fetch_assoc()['cnt'];
     array_unshift($div_trend, ['date' => date('M d', strtotime($td)), 'present' => $cnt, 'absent' => max(0, $day_total - $cnt)]);
     $td = date('Y-m-d', strtotime($td . ' -1 day'));

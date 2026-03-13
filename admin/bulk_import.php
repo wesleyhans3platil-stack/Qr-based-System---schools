@@ -119,12 +119,17 @@ if (isset($_POST['preview']) && $_POST['import_type'] === 'students' && isset($_
             $_SESSION['import_school_id'] = $school_id;
             $_SESSION['import_grade_level_id'] = $grade_level_id;
             $_SESSION['import_section_id'] = $section_id;
-                // Default import active_from to system launch_start_date if not provided
+                // Default import active_from to today (or system launch date if later) so newly imported students are not marked absent immediately.
                 $sys_launch = null;
                 $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
                 if ($r && $row = $r->fetch_assoc()) $sys_launch = $row['setting_value'];
+                $today = date('Y-m-d');
+                $default_active_from = $today;
+                if ($sys_launch && $sys_launch > $default_active_from) {
+                    $default_active_from = $sys_launch;
+                }
                 $posted_af = trim($_POST['import_active_from'] ?? '');
-                $_SESSION['import_active_from'] = $posted_af !== '' ? $posted_af : ($sys_launch ?: null);
+                $_SESSION['import_active_from'] = $posted_af !== '' ? $posted_af : $default_active_from;
             $_SESSION['import_type'] = 'students';
 
             array_shift($rows);
