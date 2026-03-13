@@ -144,18 +144,103 @@ if ($r) {
     }
 }
 
-// Per-School Breakdown
+// Per-School Breakdown (optimized queries to avoid N+1 subqueries)
 $school_breakdown = [];
-$school_sql = "SELECT s.id, s.name, s.code,
-    (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) AND ($student_effective_date_sub < '$filter_date' OR st.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))) as enrolled,
-    (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
-    (SELECT COUNT(DISTINCT a.person_id) FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.school_id = s.id AND a.date='$filter_date' AND a.time_in IS NOT NULL) as teachers_present,
-    (SELECT COUNT(*) FROM teachers t WHERE t.school_id = s.id AND t.status='active') as total_teachers
-    FROM schools s WHERE s.status='active' " . ($admin_role === 'principal' && $admin_school_id ? "AND s.id = " . (int)$admin_school_id : "") . "
-    ORDER BY s.name";
-$r = $conn->query($school_sql);
+
+// Base filters (role + school selection)
+$schoolFilter = '';
+if ($admin_role === 'principal' && $admin_school_id) {
+    $schoolFilter = " WHERE s.id = " . (int)$admin_school_id;
+} elseif ($filter_school) {
+    $schoolFilter = " WHERE s.id = " . (int)$filter_school;
+}
+
+// 1) Get list of active schools (we want consistent ordering)
+$schoolList = [];
+$r = $conn->query("SELECT id, name, code FROM schools s WHERE s.status='active'" . $schoolFilter . " ORDER BY s.name");
 if ($r) {
     while ($row = $r->fetch_assoc()) {
+        $schoolList[$row['id']] = [
+            'id' => $row['id'],
+            'name' => $row['name'],
+            'code' => $row['code'],
+            'enrolled' => 0,
+            'present' => 0,
+            'teachers_present' => 0,
+            'total_teachers' => 0,
+        ];
+    }
+}
+
+if (!empty($schoolList)) {
+    $schoolIds = implode(',', array_keys($schoolList));
+
+    // 2) Student enrolled count per school
+    $enrolledSql = "SELECT s.school_id, COUNT(*) as cnt
+        FROM students s
+        WHERE s.status='active'
+          AND s.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12'))
+          AND (DATE(s.created_at) < '$filter_date' OR s.id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))
+          AND s.school_id IN ($schoolIds)
+        GROUP BY s.school_id";
+    $r = $conn->query($enrolledSql);
+    if ($r) {
+        while ($row = $r->fetch_assoc()) {
+            $sid = (int)$row['school_id'];
+            if (isset($schoolList[$sid])) {
+                $schoolList[$sid]['enrolled'] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    // 3) Student present count per school
+    $presentSql = "SELECT a.school_id, COUNT(DISTINCT a.person_id) as cnt
+        FROM attendance a
+        INNER JOIN students st ON a.person_type='student' AND a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12'))
+        WHERE a.date = '$filter_date' AND a.time_in IS NOT NULL
+          AND a.school_id IN ($schoolIds)
+        GROUP BY a.school_id";
+    $r = $conn->query($presentSql);
+    if ($r) {
+        while ($row = $r->fetch_assoc()) {
+            $sid = (int)$row['school_id'];
+            if (isset($schoolList[$sid])) {
+                $schoolList[$sid]['present'] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    // 4) Teacher present count per school
+    $teacherPresentSql = "SELECT a.school_id, COUNT(DISTINCT a.person_id) as cnt
+        FROM attendance a
+        INNER JOIN teachers t ON a.person_type='teacher' AND a.person_id = t.id AND t.status='active'
+        WHERE a.date = '$filter_date' AND a.time_in IS NOT NULL
+          AND a.school_id IN ($schoolIds)
+        GROUP BY a.school_id";
+    $r = $conn->query($teacherPresentSql);
+    if ($r) {
+        while ($row = $r->fetch_assoc()) {
+            $sid = (int)$row['school_id'];
+            if (isset($schoolList[$sid])) {
+                $schoolList[$sid]['teachers_present'] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    // 5) Total active teachers per school
+    $teacherTotalSql = "SELECT school_id, COUNT(*) as cnt FROM teachers WHERE status='active' AND school_id IN ($schoolIds) GROUP BY school_id";
+    $r = $conn->query($teacherTotalSql);
+    if ($r) {
+        while ($row = $r->fetch_assoc()) {
+            $sid = (int)$row['school_id'];
+            if (isset($schoolList[$sid])) {
+                $schoolList[$sid]['total_teachers'] = (int)$row['cnt'];
+            }
+        }
+    }
+
+    // Build final breakdown array (same order as school list)
+    foreach ($schoolList as $row) {
         $row['present'] = min($row['present'], $row['enrolled']);
         $row['absent'] = max(0, $row['enrolled'] - $row['present']);
         $row['rate'] = $row['enrolled'] > 0 ? min(100, round(($row['present'] / $row['enrolled']) * 100, 1)) : 0;
