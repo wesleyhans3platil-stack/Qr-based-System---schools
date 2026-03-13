@@ -367,7 +367,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
 
         /* ═══ Nav Bar ═══ */
         .nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid rgba(0,0,0,.06);padding:0 4px var(--safe-b);height:calc(72px + var(--safe-b));display:flex;justify-content:space-around;align-items:stretch}
-        .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.55rem;font-weight:600;color:var(--on-surface-v);text-decoration:none;padding:0 8px;border:none;background:none;cursor:pointer;position:relative;flex:1;transition:color .2s}
+        .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.55rem;font-weight:600;color:var(--on-surface-v);text-decoration:none;padding:0 8px;border:none;background:none;cursor:pointer;position:relative;flex:1;transition:color .2s;-webkit-tap-highlight-color:transparent;outline:none;}
+        .nav-item:focus { outline: none !important; }
         .nav-item i{font-size:1.05rem;z-index:1;transition:transform .15s, color .2s}
         .nav-item span{z-index:1}
         .nav-item.active{color:#022c22}
