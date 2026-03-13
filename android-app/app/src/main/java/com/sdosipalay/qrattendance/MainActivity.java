@@ -209,6 +209,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void triggerImmediateAbsenceCheck() {
         try {
+            // mark worker to force notify once on next check (useful after login)
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            prefs.edit().putBoolean("force_absence_notify", true).apply();
+
             Constraints constraints = new Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
                     .build();
