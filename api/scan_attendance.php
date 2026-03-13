@@ -340,12 +340,60 @@ if ($action === 'TIME_OUT') {
     $response['time_out'] = date('h:i A', strtotime($current_time));
 }
 
+// Notify real-time clients (optional)
+notifyRealtime([
+    'type' => 'attendance',
+    'school_id' => $school_id,
+    'person_type' => $person_type,
+    'person_id' => $person_id,
+    'action' => $action,
+    'time' => $response['time'],
+    'status' => $status_value
+]);
+
 echo json_encode($response);
 ob_end_flush();
 
 // ══════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ══════════════════════════════════════════════
+
+/**
+ * Notify the real-time server (Node.js) about an event.
+ * The URL is taken from the WS_SERVER_URL env var (default http://localhost:8080).
+ */
+function notifyRealtime(array $payload) {
+    $url = getenv('WS_SERVER_URL') ?: 'http://localhost:8080';
+    $notify = rtrim($url, '/') . '/notify';
+
+    $json = json_encode($payload);
+    if ($json === false) return;
+
+    // Try curl if available
+    if (function_exists('curl_version')) {
+        $ch = curl_init($notify);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT_MS, 200);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 200);
+        curl_exec($ch);
+        curl_close($ch);
+        return;
+    }
+
+    // Fallback to file_get_contents
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\n",
+            'content' => $json,
+            'timeout' => 0.2
+        ]
+    ]);
+    @file_get_contents($notify, false, $ctx);
+}
 
 /**
  * Lookup student by QR code — only fetches columns needed for the response.

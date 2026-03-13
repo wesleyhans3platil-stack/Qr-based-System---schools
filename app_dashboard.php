@@ -645,6 +645,53 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     let pollTimer = null;
     const CIRC = <?= json_encode(2 * M_PI * 52) ?>;
 
+    // WebSocket push updates (optional, requires a Node.js broadcaster)
+    const WS_URL = '<?= addslashes(getenv('WS_SERVER_URL') ?: '') ?>';
+    const WS_ENDPOINT = WS_URL || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    let ws = null;
+    let wsReconnectTimer = null;
+
+    function setupWebSocket() {
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+        try {
+            ws = new WebSocket(WS_ENDPOINT);
+            ws.addEventListener('open', () => {
+                console.debug('WS connected', WS_ENDPOINT);
+                if (wsReconnectTimer) {
+                    clearTimeout(wsReconnectTimer);
+                    wsReconnectTimer = null;
+                }
+            });
+            ws.addEventListener('message', ev => {
+                try {
+                    const msg = JSON.parse(ev.data);
+                    if (msg.type === 'attendance') {
+                        pollData();
+                    }
+                } catch (e) {
+                    console.warn('WS parse error', e);
+                }
+            });
+            ws.addEventListener('close', () => {
+                console.debug('WS closed, reconnecting...');
+                if (!wsReconnectTimer) {
+                    wsReconnectTimer = setTimeout(setupWebSocket, 5000);
+                }
+            });
+            ws.addEventListener('error', e => {
+                console.warn('WS error', e);
+                ws.close();
+            });
+        } catch (e) {
+            console.warn('WS init failed', e);
+        }
+    }
+
+    setupWebSocket();
+
     function getApiUrl() {
         const p = new URLSearchParams(location.search);
         let url = 'api/dashboard_data.php';
