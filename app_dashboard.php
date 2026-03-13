@@ -235,6 +235,8 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
         }
         html,body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--on-surface);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+        .content{transition:opacity .25s ease;}
+        .content.fade-out{opacity:.25;}
 
         /* ═══ App Bar ═══ */
         .app-bar{position:sticky;top:0;z-index:100;background:var(--pri);color:#fff;padding:calc(10px + var(--safe-t)) 16px 14px}
@@ -367,11 +369,12 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
 
         /* ═══ Nav Bar ═══ */
         .nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid rgba(0,0,0,.06);padding:0 4px var(--safe-b);height:calc(72px + var(--safe-b));display:flex;justify-content:space-around;align-items:stretch}
-        .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.55rem;font-weight:600;color:var(--on-surface-v);text-decoration:none;padding:0 8px;border:none;background:none;cursor:pointer;position:relative;flex:1;transition:color .2s;-webkit-tap-highlight-color:transparent;outline:none;}
-        .nav-item:focus { outline: none !important; }
+        .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.55rem;font-weight:600;color:var(--on-surface-v);text-decoration:none;padding:0 8px;border:none;background:none;cursor:pointer;position:relative;flex:1;transition:color .2s, background .2s;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;outline:none;}
+        .nav-item:focus, .nav-item:focus-visible { outline: none !important; }
         .nav-item i{font-size:1.05rem;z-index:1;transition:transform .15s, color .2s}
         .nav-item span{z-index:1}
         .nav-item.active{color:#022c22}
+        .nav-item:active{background:rgba(5,150,105,.12);}
         .nav-item .pill{position:absolute;top:10px;left:50%;width:28px;height:6px;border-radius:999px;background:var(--green-c);opacity:0;transform:translateX(-50%) scaleX(0.8);transition:opacity .25s ease, transform .25s ease}
         .nav-item.active .pill{opacity:1;transform:translateX(-50%) scaleX(1)}
         .nav-item:active i{transform:scale(.85)}
