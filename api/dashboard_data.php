@@ -95,6 +95,13 @@ $teacher_att_pct = $total_teachers > 0 ? min(100, round(($teachers_in / $total_t
 // 2-Day Flag count (disabled to improve response speed)
 $flagged_students = [];
 
+// Inactive students list (super admin only)
+$inactive_students = [];
+if ($admin_role === 'super_admin') {
+    $ri = $conn->query("SELECT s.id, s.lrn, s.name, sch.name as school_name FROM students s LEFT JOIN schools sch ON s.school_id = sch.id WHERE s.status <> 'active' ORDER BY s.name LIMIT 20");
+    if ($ri) while ($row = $ri->fetch_assoc()) $inactive_students[] = $row;
+}
+
 // Per-School Breakdown (optimized queries to avoid N+1 subqueries)
 $school_breakdown = [];
 
@@ -235,9 +242,11 @@ $payload = [
         'teachers_in' => (int)$teachers_in,
         'teachers_absent' => (int)$teachers_absent,
         'teacher_att_pct' => (float)$teacher_att_pct,
-        'flag_count' => 0,
+        'flag_count' => count($flagged_students),
+        'inactive_students_count' => count($inactive_students),
     ],
-    'flagged_students' => [],
+    'flagged_students' => $flagged_students,
+    'inactive_students' => $inactive_students,
     'school_breakdown' => $school_breakdown,
     'schools_ranked' => array_slice($schools_ranked, 0, 10),
     'trend' => $div_trend,

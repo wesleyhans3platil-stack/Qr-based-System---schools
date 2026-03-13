@@ -175,28 +175,28 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
             <div class="stat-card primary">
                 <div class="stat-icon primary"><i class="fas fa-school"></i></div>
-                <div class="stat-info"><h3><?= $total_schools ?></h3><span>Schools</span></div>
+                <div class="stat-info"><h3 id="statTotalSchools"><?= $total_schools ?></h3><span>Schools</span></div>
             </div>
             <div class="stat-card success">
                 <div class="stat-icon success"><i class="fas fa-user-check"></i></div>
-                <div class="stat-info"><h3><?= $timed_in_today ?></h3><span>Students Present</span></div>
+                <div class="stat-info"><h3 id="statStudentsPresent"><?= $timed_in_today ?></h3><span>Students Present</span></div>
             </div>
             <div class="stat-card error">
                 <div class="stat-icon error"><i class="fas fa-user-times"></i></div>
-                <div class="stat-info"><h3><?= $absent_today ?></h3><span>Students Absent</span></div>
+                <div class="stat-info"><h3 id="statStudentsAbsent"><?= $absent_today ?></h3><span>Students Absent</span></div>
             </div>
             <div class="stat-card warning">
                 <div class="stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="stat-info"><h3><?= count($flagged_students) ?></h3><span>2-Day Flagged</span></div>
+                <div class="stat-info"><h3 id="statFlaggedCount"><?= count($flagged_students) ?></h3><span>2-Day Flagged</span></div>
             </div>
             <div class="stat-card info">
                 <div class="stat-icon info"><i class="fas fa-chalkboard-teacher"></i></div>
-                <div class="stat-info"><h3><?= $teachers_in ?>/<?= $total_teachers ?></h3><span>Teachers Present</span></div>
+                <div class="stat-info"><h3 id="statTeachersPresent"><?= $teachers_in ?>/<?= $total_teachers ?></h3><span>Teachers Present</span></div>
             </div>
             <?php if ($admin_role === 'super_admin'): ?>
             <div class="stat-card warning">
                 <div class="stat-icon warning"><i class="fas fa-user-slash"></i></div>
-                <div class="stat-info"><h3><?= count($inactive_students) ?></h3><span>Inactive Students</span></div>
+                <div class="stat-info"><h3 id="statInactiveStudents"><?= count($inactive_students) ?></h3><span>Inactive Students</span></div>
             </div>
             <?php endif; ?>
         </div>
@@ -210,7 +210,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                         <thead>
                             <tr><th>School</th><th>Enrolled</th><th>Present</th><th>Absent</th><th>Rate</th><th>Teachers</th><th>Progress</th></tr>
                         </thead>
-                        <tbody>
+                        <tbody id="schoolBreakdownBody">
                             <?php if (empty($school_breakdown)): ?>
                                 <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No schools found.</td></tr>
                             <?php else: foreach ($school_breakdown as $sb): ?>
@@ -235,8 +235,8 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
 
             <!-- 2-Day Flagged Students -->
             <div class="card">
-                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> 2-Day Consecutive Absences <span class="badge badge-warning" style="margin-left:8px;"><?= count($flagged_students) ?></span></div>
-                <div style="max-height:400px;overflow-y:auto;">
+                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> 2-Day Consecutive Absences <span id="flagCountBadge" class="badge badge-warning" style="margin-left:8px;"><?= count($flagged_students) ?></span></div>
+                <div id="flaggedStudentsContainer" style="max-height:400px;overflow-y:auto;">
                     <?php if (empty($flagged_students)): ?>
                         <div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No flags!</h3><p>All students have been attending.</p></div>
                     <?php else: foreach ($flagged_students as $fs): ?>
@@ -257,7 +257,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             <!-- Teacher Attendance Summary -->
             <div class="card">
                 <div class="card-title"><i class="fas fa-chalkboard-teacher" style="color:var(--info);"></i> Teacher Attendance</div>
-                <div style="max-height:400px;overflow-y:auto;">
+                <div id="teacherAttendanceContainer" style="max-height:400px;overflow-y:auto;">
                     <?php foreach ($school_breakdown as $sb): ?>
                         <div class="school-row">
                             <div class="school-info">
@@ -281,7 +281,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             <!-- Inactive Students (Super Admin only) -->
             <div class="card">
                 <div class="card-title"><i class="fas fa-user-slash" style="color:var(--warning);"></i> Inactive Students <span class="badge badge-warning" style="margin-left:8px;"><?= count($inactive_students) ?></span></div>
-                <div style="max-height:400px;overflow-y:auto;">
+                <div id="inactiveStudentsContainer" style="max-height:400px;overflow-y:auto;">
                     <?php if (empty($inactive_students)): ?>
                         <div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No inactive students</h3><p>All students are currently active.</p></div>
                     <?php else: foreach ($inactive_students as $st): ?>
@@ -301,8 +301,164 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
 
 
     <script>
-    // Auto-refresh every 60 seconds
-    setTimeout(() => location.reload(), 60000);
+    (function() {
+        const API_URL = '../api/dashboard_data.php';
+        const POLL_INTERVAL_MS = 15000; // 15 seconds
+        let lastTs = null;
+
+        const escapeHtml = (str) => String(str ?? '').replace(/[&<>"]+/g, (m) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        })[m] || '');
+
+        const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        const buildApiUrl = () => {
+            const params = new URLSearchParams(window.location.search);
+            const url = new URL(API_URL, window.location.origin);
+            const date = params.get('date');
+            const school = params.get('school');
+            if (date) url.searchParams.set('date', date);
+            if (school) url.searchParams.set('school', school);
+            return url.toString();
+        };
+
+        const renderSchoolBreakdown = (items) => {
+            const tbody = document.getElementById('schoolBreakdownBody');
+            if (!tbody) return;
+            if (!Array.isArray(items) || items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No schools found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(sb => {
+                const rate = Number(sb.rate) || 0;
+                const color = rate >= 90 ? '#16a34a' : (rate >= 75 ? '#d97706' : '#dc2626');
+                const present = Number(sb.present) || 0;
+                const enrolled = Number(sb.enrolled) || 0;
+                const absent = Number(sb.absent) || 0;
+                const teachersPresent = Number(sb.teachers_present) || 0;
+                const totalTeachers = Number(sb.total_teachers) || 0;
+                const progress = Math.min(100, Math.max(0, rate));
+                return `
+<tr>
+  <td><strong>${escapeHtml(sb.name)}</strong></td>
+  <td>${enrolled}</td>
+  <td><span class="text-success fw-700">${present}</span></td>
+  <td><span class="text-error fw-700">${absent}</span></td>
+  <td><span class="fw-700" style="color:${color};">${rate}%</span></td>
+  <td><span class="text-primary">${teachersPresent}</span>/${totalTeachers}</td>
+  <td>
+    <div class="progress-bar">
+      <div class="fill" style="width:${progress}%; background:var(--success); border-radius:3px 0 0 3px;"></div>
+      <div class="fill" style="width:${100 - progress}%; background:var(--error); border-radius:0 3px 3px 0;"></div>
+    </div>
+  </td>
+</tr>`;
+            }).join('');
+        };
+
+        const renderFlaggedStudents = (items) => {
+            const container = document.getElementById('flaggedStudentsContainer');
+            if (!container) return;
+            if (!Array.isArray(items) || items.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No flags!</h3><p>All students have been attending.</p></div>';
+                return;
+            }
+            container.innerHTML = items.map(fs => `
+<div class="flag-item">
+  <div>
+    <div style="font-weight:700;font-size:0.9rem;">${escapeHtml(fs.name)}</div>
+    <div style="font-size:0.75rem;color:var(--text-muted);">LRN: ${escapeHtml(fs.lrn)} · ${escapeHtml(fs.grade_name ?? '')} — ${escapeHtml(fs.section_name ?? '')}</div>
+  </div>
+  <div style="text-align:right;">
+    <span class="badge badge-info" style="font-size:0.65rem;">${escapeHtml(fs.school_code ?? '')}</span>
+    <div style="font-size:0.7rem;color:var(--warning);font-weight:600;margin-top:4px;">2+ days</div>
+  </div>
+</div>`).join('');
+        };
+
+        const renderTeacherAttendance = (items) => {
+            const container = document.getElementById('teacherAttendanceContainer');
+            if (!container) return;
+            if (!Array.isArray(items) || items.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>No data.</p></div>';
+                return;
+            }
+            container.innerHTML = items.map(sb => {
+                const pct = (sb.total_teachers > 0) ? Math.round((sb.teachers_present / sb.total_teachers) * 100) : '—';
+                const color = (sb.total_teachers > 0 && sb.teachers_present === sb.total_teachers) ? 'var(--success)' : 'var(--warning)';
+                return `
+<div class="school-row">
+  <div class="school-info">
+    <div>
+      <div style="font-weight:600;font-size:0.85rem;">${escapeHtml(sb.name)}</div>
+      <div style="font-size:0.72rem;color:var(--text-muted);">${sb.teachers_present} of ${sb.total_teachers} present</div>
+    </div>
+  </div>
+  <div style="font-size:1.1rem;font-weight:800;color:${color};">${pct}%</div>
+</div>`;
+            }).join('');
+        };
+
+        const renderInactiveStudents = (items) => {
+            const container = document.getElementById('inactiveStudentsContainer');
+            if (!container) return;
+            if (!Array.isArray(items) || items.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No inactive students</h3><p>All students are currently active.</p></div>';
+                return;
+            }
+            container.innerHTML = items.map(st => `
+<div class="flag-item">
+  <div>
+    <div style="font-weight:700;font-size:0.9rem;">${escapeHtml(st.name)}</div>
+    <div style="font-size:0.75rem;color:var(--text-muted);">LRN: ${escapeHtml(st.lrn)} · ${escapeHtml(st.school_name ?? '')}</div>
+  </div>
+</div>`).join('');
+        };
+
+        const updateStats = (stats) => {
+            if (!stats) return;
+            setText('statTotalSchools', stats.total_schools ?? '0');
+            setText('statStudentsPresent', stats.timed_in_today ?? '0');
+            setText('statStudentsAbsent', stats.absent_today ?? '0');
+            setText('statFlaggedCount', stats.flag_count ?? '0');
+            setText('flagCountBadge', stats.flag_count ?? '0');
+            setText('statTeachersPresent', `${stats.teachers_in ?? 0}/${stats.total_teachers ?? 0}`);
+            setText('statInactiveStudents', stats.inactive_students_count ?? '0');
+        };
+
+        async function poll() {
+            try {
+                const baseUrl = buildApiUrl();
+                const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+                const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data || typeof data !== 'object') return;
+                if (data.ts && data.ts === lastTs) return;
+                lastTs = data.ts;
+
+                updateStats(data.stats);
+                renderSchoolBreakdown(data.school_breakdown);
+                renderFlaggedStudents(data.flagged_students);
+                renderTeacherAttendance(data.school_breakdown);
+                renderInactiveStudents(data.inactive_students);
+            } catch (err) {
+                // Silent fail: retry on next poll
+                console.warn('Dashboard polling error', err);
+            } finally {
+                setTimeout(poll, POLL_INTERVAL_MS);
+            }
+        }
+
+        // Start polling after page load
+        poll();
+    })();
     </script>
 <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
