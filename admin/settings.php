@@ -268,12 +268,10 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'includes/header.php'; ?></head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
-    /* Custom styled date inputs (better than browser default) */
-    input[type="date"].styled-date {
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
+    /* Custom styled date inputs (replaces browser default appearance) */
+    input.styled-date {
         background: #fff url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23666%22%3E%3Cpath d=%22M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM5 20V9h14v11H5zm2-9h5v5H7v-5z%22/%3E%3C/svg%3E') no-repeat right 10px center/18px 18px;
         background-color: #fff;
         background-clip: padding-box;
@@ -283,7 +281,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
         font-size: 1rem;
         line-height: 1.3;
     }
-    input[type="date"].styled-date:focus {
+    input.styled-date:focus {
         outline: none;
         border-color: #2563eb;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
@@ -372,6 +370,12 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <label>Launch Start Date (optional)</label>
                         <?php
                             $launchVal = $sys['launch_start_date'] ?? '';
+                            if (!empty($launchVal)) {
+                                $d = DateTime::createFromFormat('m/d/Y', $launchVal);
+                                if ($d && $d->format('m/d/Y') === $launchVal) {
+                                    $launchVal = $d->format('Y-m-d');
+                                }
+                            }
                             if (empty($launchVal)) {
                                 $launchVal = date('Y-m-d');
                             }
@@ -399,7 +403,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                             </div>
                             <div style="flex:1;min-width:200px;">
                                 <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Launch Date</label>
-                                <input type="date" name="launch_start_date" class="form-control styled-date" value="<?= htmlspecialchars($launchVal) ?>">
+                                <input type="text" name="launch_start_date" class="form-control styled-date" placeholder="YYYY-MM-DD" value="<?= htmlspecialchars($launchVal) ?>">
                             </div>
                             <div id="schoolLaunchRow" style="flex:1;min-width:220px;display:<?= !empty($schoolLaunchId) ? 'flex' : 'none' ?>;gap:12px;">
                                 <div style="flex:1;">
@@ -459,7 +463,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                                                 $schoolDate = $parsed->format('Y-m-d');
                                             }
                                         ?>
-                                        <input type="date" name="school_launch_date" class="styled-date" value="<?= htmlspecialchars($schoolDate) ?>" style="flex:1;">
+                                        <input type="text" name="school_launch_date" class="styled-date" placeholder="YYYY-MM-DD" value="<?= htmlspecialchars($schoolDate) ?>" style="flex:1;">
                                         <button type="submit" name="set_school_launch" class="btn" style="padding:6px 10px;background:#10b981;color:#fff;border-radius:8px;border:none;">Set</button>
                                         <button type="submit" name="clear_school_launch" class="btn" style="padding:6px 10px;background:#ef4444;color:#fff;border-radius:8px;border:none;">Clear</button>
                                     </form>
@@ -484,7 +488,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             <form method="POST" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:16px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
                 <div class="form-group" style="margin-bottom:0;flex:0 0 170px;">
                     <label style="font-size:0.78rem;font-weight:600;margin-bottom:4px;display:block;">Date</label>
-                    <input type="date" name="holiday_date" class="form-control" required style="padding:8px 12px;">
+                    <input type="text" name="holiday_date" class="form-control styled-date" required placeholder="YYYY-MM-DD" style="padding:8px 12px;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px;">
                     <label style="font-size:0.78rem;font-weight:600;margin-bottom:4px;display:block;">Holiday Name</label>
@@ -811,6 +815,14 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                 resultDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-times-circle"></i> Error: ${err.message}</div>`;
             });
     }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof flatpickr !== 'undefined') {
+                flatpickr('.styled-date', { dateFormat: 'Y-m-d', allowInput: true, zIndex: 2000 });
+            }
+        });
     </script>
 <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>

@@ -551,6 +551,11 @@ select.form-control {
     border-bottom: 1px solid var(--border);
 }
 
+/* Ensure datepicker popovers always sit above other UI (modals, overlays, etc.) */
+.flatpickr-calendar {
+    z-index: 2000 !important;
+}
+
 .modal-header h3 {
     font-size: 1.1rem;
     font-weight: 700;
