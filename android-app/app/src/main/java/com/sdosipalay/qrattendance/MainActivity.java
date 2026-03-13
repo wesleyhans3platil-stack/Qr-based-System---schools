@@ -233,6 +233,11 @@ public class MainActivity extends AppCompatActivity {
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, true);
 
+        // Hide visible scrollbars — keep scrolling functional
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setScrollBarSize(0);
+
         // ── WebViewClient ──
         webView.setWebViewClient(new WebViewClient() {
             @Override
