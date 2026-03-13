@@ -221,6 +221,9 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        button, a, input, select, textarea { outline: none; }
+        button:focus, a:focus, input:focus, select:focus, textarea:focus { outline: none !important; }
+        button, .bar-btn, .btn { -webkit-tap-highlight-color: transparent; }
         :root{
             --pri:#059669;--pri-l:#34d399;--pri-d:#047857;
             --green:#059669;--red:#dc2626;--amber:#d97706;--blue:#059669;--teal:#0d9488;
@@ -863,22 +866,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     pollData();
     pollTimer = setInterval(pollData, POLL_INTERVAL);
 
-    // Add SSE-based quick refresh trigger (server broadcasts when data changes)
-    if (typeof EventSource !== 'undefined') {
-        try {
-            const evt = new EventSource('api/stream_updates.php');
-            evt.onmessage = () => {
-                // Only poll when not already polling to avoid overlap
-                if (!isPolling) pollData();
-            };
-            evt.onerror = () => {
-                // reconnect automatically (EventSource does this internally), but if it fails hard, fall back to polling alone
-                console.warn('SSE connection error');
-            };
-        } catch (e) {
-            console.warn('SSE not supported', e);
-        }
-    }
 
     // Pause when tab hidden, resume when visible
     document.addEventListener('visibilitychange', () => {
