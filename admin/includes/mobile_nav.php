@@ -33,11 +33,13 @@ if ($isApp || $isMobileDevice):
     .app-bottom-nav a i { font-size: 1.05rem; z-index: 1; transition: transform 0.15s; }
     .app-bottom-nav a span { z-index: 1; }
     .app-bottom-nav a .pill {
-        position: absolute; top: 10px; width: 48px; height: 24px;
-        border-radius: 12px; background: #d1fae5; opacity: 0; transition: opacity 0.15s;
+        position: absolute; top: 10px; left: 50%; width: 28px; height: 6px;
+        border-radius: 999px; background: #d1fae5; opacity: 0;
+        transform: translateX(-50%) scaleX(0.85);
+        transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .app-bottom-nav a.active { color: #022c22; }
-    .app-bottom-nav a.active .pill { opacity: 1; }
+    .app-bottom-nav a.active .pill { opacity: 1; transform: translateX(-50%) scaleX(1); }
     .app-bottom-nav a:active i { transform: scale(0.85); }
     body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
     .sidebar, .sidebar-overlay, .mobile-menu-toggle { display: none !important; }
