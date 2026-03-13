@@ -107,9 +107,19 @@ public class MainActivity extends AppCompatActivity {
             if (webView != null) {
                 webView.post(() -> webView.evaluateJavascript("if(typeof pollData==='function'){pollData();}", null));
             }
-            jsPollHandler.postDelayed(this, 5000);
+            // Poll less often to avoid UI jank on slower devices
+            jsPollHandler.postDelayed(this, 10000);
         }
     };
+
+    private void startJsPolling() {
+        jsPollHandler.removeCallbacks(jsPollRunnable);
+        jsPollHandler.postDelayed(jsPollRunnable, 10000);
+    }
+
+    private void stopJsPolling() {
+        jsPollHandler.removeCallbacks(jsPollRunnable);
+    }
 
     // File upload
     private ValueCallback<Uri[]> fileUploadCallback;
@@ -156,6 +166,8 @@ public class MainActivity extends AppCompatActivity {
         showWelcomeNotification();
         // Run an immediate check once at login so admins get absence alerts like the welcome
         triggerImmediateAbsenceCheck();
+        // Start periodic JS polling (will be paused when activity is not visible)
+        startJsPolling();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -773,6 +785,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         webView.onResume();
         CookieManager.getInstance().flush();
+        startJsPolling();
     }
 
     @Override
@@ -780,6 +793,7 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         webView.onPause();
         CookieManager.getInstance().flush();
+        stopJsPolling();
     }
 
     @Override
