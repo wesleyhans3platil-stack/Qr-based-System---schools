@@ -6,6 +6,12 @@ if (!isset($_SESSION['admin_id'])) {
     header('Location: ../admin_login.php');
     exit;
 }
+
+// NOTE: The Node.js dashboard is the canonical live dashboard.
+// Redirect here so users automatically get the real-time UI.
+header('Location: /');
+exit;
+
 // Redirect role-specific users to their dashboards
 $role = $_SESSION['admin_role'] ?? 'super_admin';
 if ($role === 'principal') { header('Location: principal_dashboard.php'); exit; }
