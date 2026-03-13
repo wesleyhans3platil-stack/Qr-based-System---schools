@@ -75,6 +75,15 @@ if ($needsInit) {
 // Always ensure required seed data exists (lightweight checks)
 seedRequiredData($conn);
 
+// Ensure required schema upgrades (for existing installs)
+// - Add students.active_from if missing (used by dashboard/absence logic)
+mysqli_report(MYSQLI_REPORT_OFF);
+$col_check = $conn->query("SHOW COLUMNS FROM students LIKE 'active_from'");
+if (!$col_check || $col_check->num_rows == 0) {
+    $conn->query("ALTER TABLE students ADD COLUMN active_from DATE DEFAULT NULL AFTER created_at");
+}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 // Store connection globally
 $GLOBALS['db_conn'] = $conn;
 
