@@ -146,16 +146,16 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                 <h1><i class="fas fa-chart-pie" style="color:var(--primary);margin-right:8px;"></i> Division Dashboard</h1>
                 <p>Real-time attendance monitoring — <?= date('l, F j, Y', strtotime($filter_date)) ?></p>
             </div>
-            <form method="GET" style="display:flex;gap:10px;align-items:center;">
+            <form id="dashboardFiltersForm" method="GET" style="display:flex;gap:10px;align-items:center;" onsubmit="event.preventDefault();">
                 <?php if ($admin_role !== 'principal'): ?>
-                <select name="school" class="form-control" style="width:auto;min-width:200px;" onchange="this.form.submit()">
+                <select id="filterSchool" name="school" class="form-control" style="width:auto;min-width:200px;">
                     <option value="">All Schools</option>
                     <?php foreach ($schools_list as $sch): ?>
                         <option value="<?= $sch['id'] ?>" <?= $filter_school == $sch['id'] ? 'selected' : '' ?>><?= htmlspecialchars($sch['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <input type="date" name="date" class="form-control" style="width:auto;" value="<?= $filter_date ?>" onchange="this.form.submit()">
+                <input id="filterDate" type="date" name="date" class="form-control" style="width:auto;" value="<?= $filter_date ?>">
             </form>
         </div>
 
@@ -303,15 +303,43 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
     <script>
     (function() {
         const API_URL = '../api/dashboard_data.php';
-        const POLL_INTERVAL_MS = 15000; // 15 seconds
+        const POLL_INTERVAL_MS = 1000; // 1 second (real-time updates)
         let lastTs = null;
+        let isPolling = false;
+        let pollTimeout = null;
 
-        const escapeHtml = (str) => String(str ?? '').replace(/[&<>"]+/g, (m) => ({
+        const escapeHtml = (str) => String(str ?? '').replace(/[&<>"+]/g, (m) => ({
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;'
         })[m] || '');
+
+        const applyFilters = () => {
+            const schoolEl = document.getElementById('filterSchool');
+            const dateEl = document.getElementById('filterDate');
+            const params = new URLSearchParams(window.location.search);
+
+            if (dateEl?.value) params.set('date', dateEl.value);
+            else params.delete('date');
+
+            if (schoolEl?.value) params.set('school', schoolEl.value);
+            else params.delete('school');
+
+            const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            history.replaceState({}, '', newUrl);
+
+            lastTs = null;
+            if (pollTimeout) clearTimeout(pollTimeout);
+            poll();
+        };
+
+        const initFilters = () => {
+            const form = document.getElementById('dashboardFiltersForm');
+            if (!form) return;
+            form.addEventListener('change', applyFilters);
+            form.addEventListener('reset', () => setTimeout(applyFilters, 0));
+        };
 
         const setText = (id, value) => {
             const el = document.getElementById(id);
@@ -433,6 +461,9 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         };
 
         async function poll() {
+            if (isPolling) return;
+            isPolling = true;
+
             try {
                 const baseUrl = buildApiUrl();
                 const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
@@ -452,11 +483,14 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                 // Silent fail: retry on next poll
                 console.warn('Dashboard polling error', err);
             } finally {
-                setTimeout(poll, POLL_INTERVAL_MS);
+                isPolling = false;
+                if (pollTimeout) clearTimeout(pollTimeout);
+                pollTimeout = setTimeout(poll, POLL_INTERVAL_MS);
             }
         }
 
         // Start polling after page load
+        initFilters();
         poll();
     })();
     </script>
