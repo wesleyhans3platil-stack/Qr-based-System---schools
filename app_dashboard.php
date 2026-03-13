@@ -618,8 +618,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     </nav>
 
     <script>
-    // Unregister leftover service workers
-    if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(reg=>reg.unregister()))}
 
     // ═══ Toast ═══
     function showToast(msg, ok) {
