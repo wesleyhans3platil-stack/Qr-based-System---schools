@@ -279,7 +279,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .bar-btn .fa-spin{animation:spin .8s linear infinite}
 
         .date-row{display:flex;align-items:center;gap:6px;margin-top:10px}
-        .live-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.5);animation:pulse 1.5s infinite}
         .date-chip{font-size:.72rem;font-weight:600;background:rgba(255,255,255,.12);padding:6px 12px;border-radius:8px;display:flex;align-items:center;gap:5px}
         .date-chip i{font-size:.65rem;opacity:.7}
         .date-input{background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 10px;border-radius:8px;font-size:.72rem;font-family:inherit;font-weight:600;outline:none;color-scheme:dark}
@@ -447,8 +446,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             </div>
         </div>
         <div class="date-row">
-            <?php if ($is_today): ?><div class="live-dot"></div><div class="date-chip"><i class="fas fa-bolt"></i>Real-time — <?= date('D, M j') ?></div>
-            <?php else: ?><div class="date-chip"><i class="fas fa-calendar"></i><?= date('D, M j, Y', strtotime($filter_date)) ?></div><?php endif; ?>
+            <div class="date-chip"><i class="fas fa-calendar"></i><?= date('D, M j, Y', strtotime($filter_date)) ?></div>
             <input type="date" class="date-input" value="<?= htmlspecialchars($filter_date) ?>" onchange="applyDate(this.value)">
         </div>
     </header>
