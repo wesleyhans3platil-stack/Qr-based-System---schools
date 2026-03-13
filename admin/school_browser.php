@@ -715,8 +715,8 @@ if ($section_id) {
             LEFT JOIN grade_levels gl ON sec.grade_level_id = gl.id
             WHERE sec.id = $section_id")->fetch_assoc();
 
-        // Get students
-        $students_q = $conn->query("SELECT * FROM students WHERE section_id = $section_id AND status='active' ORDER BY name ASC");
+        // Get students (active + inactive) in this section
+        $students_q = $conn->query("SELECT * FROM students WHERE section_id = $section_id ORDER BY name ASC");
         $student_count = $students_q ? $students_q->num_rows : 0;
 
         // Today's attendance for these students
@@ -729,22 +729,31 @@ if ($section_id) {
             }
         }
 
-        // Count present, late, absent
+        // Count present, late, absent (active students only)
         $present_count = 0;
         $late_count = 0;
-        // We need to collect student IDs first to determine absent
+        $inactive_count = 0;
+
+        // Collect student records
         $all_students = [];
         if ($students_q && $student_count > 0) {
             while ($s = $students_q->fetch_assoc()) $all_students[] = $s;
             mysqli_data_seek($students_q, 0); // won't use this anymore
         }
+
         foreach ($all_students as $s) {
+            if (($s['status'] ?? '') !== 'active') {
+                $inactive_count++;
+                continue;
+            }
             if (isset($att_map[$s['id']])) {
                 if ($att_map[$s['id']]['status'] === 'present') $present_count++;
                 elseif ($att_map[$s['id']]['status'] === 'late') $late_count++;
             }
         }
-        $absent_count = $student_count - $present_count - $late_count;
+
+        $active_count = $student_count - $inactive_count;
+        $absent_count = max(0, $active_count - $present_count - $late_count);
     ?>
         <a href="school_browser.php?view=sections&school_id=<?= $school_id ?>&grade_id=<?= $grade_id ?>" class="back-btn"><i class="fas fa-arrow-left"></i> Back to <?= htmlspecialchars($grade_name) ?></a>
 
@@ -791,6 +800,15 @@ if ($section_id) {
                 <div>
                     <div style="font-size:1.4rem;font-weight:800;color:var(--text);"><?= $student_count ?></div>
                     <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;">Total Students</div>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left:4px solid var(--warning);">
+                <div class="stat-icon warning" style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--warning-bg);">
+                    <i class="fas fa-user-slash" style="color:var(--warning);font-size:1rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size:1.4rem;font-weight:800;color:var(--warning);"><?= $inactive_count ?></div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;">Inactive Students</div>
                 </div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--success);">
@@ -877,7 +895,9 @@ if ($section_id) {
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php if ($att): ?>
+                            <?php if (($stu['status'] ?? '') !== 'active'): ?>
+                                <span class="badge badge-warning">Inactive</span>
+                            <?php elseif ($att): ?>
                                 <span class="status-badge <?= $att['status'] === 'present' ? 'status-active' : ($att['status'] === 'late' ? 'status-badge' : 'status-inactive') ?>"
                                     style="<?= $att['status'] === 'late' ? 'background:var(--warning-bg);color:var(--warning);' : '' ?>">
                                     <?= ucfirst($att['status']) ?>

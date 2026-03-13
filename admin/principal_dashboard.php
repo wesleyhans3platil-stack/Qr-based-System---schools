@@ -29,29 +29,34 @@ $r = $conn->query("SELECT * FROM schools WHERE id = $admin_school_id");
 if ($r) $school = $r->fetch_assoc();
 $school_name = $school['name'] ?? 'My School';
 
-// Total students (exclude created today unless they have attendance)
+// Total students (active + inactive)
 $total_students = 0;
-$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $admin_school_id AND (DATE(created_at) < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL))");
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE school_id = $admin_school_id");
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
+
+// Total active students (for attendance/absent calculations)
+$active_students = 0;
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND school_id = $admin_school_id");
+if ($r) $active_students = $r->fetch_assoc()['cnt'];
 
 // Total teachers
 $total_teachers = 0;
 $r = $conn->query("SELECT COUNT(*) as cnt FROM teachers WHERE status='active' AND school_id = $admin_school_id");
 if ($r) $total_teachers = $r->fetch_assoc()['cnt'];
 
-// Students present today
+// Students present today (active students only)
 $students_present = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL AND a.school_id = $admin_school_id");
 if ($r) $students_present = $r->fetch_assoc()['cnt'];
 
-// Students timed out
+// Students timed out (active students only)
 $students_timed_out = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL AND a.school_id = $admin_school_id");
 if ($r) $students_timed_out = $r->fetch_assoc()['cnt'];
 
-// Students absent
-$students_present = min($students_present, $total_students);
-$students_absent = max(0, $total_students - $students_present);
+// Students absent (active students only)
+$students_present = min($students_present, $active_students);
+$students_absent = max(0, $active_students - $students_present);
 
 // Late students
 $students_late = 0;
@@ -212,6 +217,13 @@ for ($count = 0; $count < 7; $count++) {
                 <div class="stat-info">
                     <h3><?= $teachers_present ?>/<?= $total_teachers ?></h3>
                     <span>Teachers Present</span>
+                </div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-icon warning"><i class="fas fa-user-slash"></i></div>
+                <div class="stat-info">
+                    <h3><?= max(0, $total_students - $active_students) ?></h3>
+                    <span>Inactive Students</span>
                 </div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--primary);">

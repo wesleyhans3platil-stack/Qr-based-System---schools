@@ -147,7 +147,8 @@ try {
             $days_ago = mt_rand(3, 30);
             $created_at = date('Y-m-d H:i:s', strtotime("-{$days_ago} days"));
 
-            $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)");
+            // Seeded students should start inactive until they scan in
+            $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'inactive', ?)");
             $stmt->bind_param("ssiiisss", $lrn, $full_name, $school['id'], $grade['id'], $section_id, $guardian, $qr_code, $created_at);
 
             if ($stmt->execute()) {

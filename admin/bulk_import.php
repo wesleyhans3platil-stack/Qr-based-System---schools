@@ -119,17 +119,10 @@ if (isset($_POST['preview']) && $_POST['import_type'] === 'students' && isset($_
             $_SESSION['import_school_id'] = $school_id;
             $_SESSION['import_grade_level_id'] = $grade_level_id;
             $_SESSION['import_section_id'] = $section_id;
-                // Default import active_from to today (or system launch date if later) so newly imported students are not marked absent immediately.
-                $sys_launch = null;
-                $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
-                if ($r && $row = $r->fetch_assoc()) $sys_launch = $row['setting_value'];
+                // Default import active_from to today.
                 $today = date('Y-m-d');
-                $default_active_from = $today;
-                if ($sys_launch && $sys_launch > $default_active_from) {
-                    $default_active_from = $sys_launch;
-                }
                 $posted_af = trim($_POST['import_active_from'] ?? '');
-                $_SESSION['import_active_from'] = $posted_af !== '' ? $posted_af : $default_active_from;
+                $_SESSION['import_active_from'] = $posted_af !== '' ? $posted_af : $today;
             $_SESSION['import_type'] = 'students';
 
             array_shift($rows);
@@ -437,18 +430,15 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'stu
         if ($rows && count($rows) > 1) {
             array_shift($rows);
             $import_active_from = $_SESSION['import_active_from'] ?? null;
-            if (!$import_active_from) {
-                $r2 = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
-                if ($r2 && $rw = $r2->fetch_assoc()) $import_active_from = $rw['setting_value'] ?: null;
-            }
-            if ($import_active_from) {
-                $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, active_from)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)
+// New imports start as inactive; they become active once they scan in.
+                if ($import_active_from) {
+                    $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, active_from)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'inactive', ?)
                                     ON DUPLICATE KEY UPDATE name = VALUES(name), school_id = VALUES(school_id),
                                     grade_level_id = VALUES(grade_level_id), section_id = VALUES(section_id), guardian_contact = VALUES(guardian_contact), active_from = VALUES(active_from)");
-            } else {
-                $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'inactive')
                                     ON DUPLICATE KEY UPDATE name = VALUES(name), school_id = VALUES(school_id),
                                     grade_level_id = VALUES(grade_level_id), section_id = VALUES(section_id), guardian_contact = VALUES(guardian_contact)");
             }
@@ -555,7 +545,7 @@ if (isset($_POST['confirm_import']) && ($_SESSION['import_type'] ?? '') === 'shs
         if ($rows && count($rows) > 1) {
             array_shift($rows);
             $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, 'inactive')
                                     ON DUPLICATE KEY UPDATE name = VALUES(name), school_id = VALUES(school_id),
                                     grade_level_id = VALUES(grade_level_id), section_id = VALUES(section_id), guardian_contact = VALUES(guardian_contact)");
 
@@ -759,12 +749,8 @@ if ($show_preview) {
         foreach ($sections as $s) { if ($s['id'] == ($_SESSION['import_section_id'] ?? 0)) $preview_section = $s['name']; }
     }
 
-    // Determine preview active_from (session or system default)
+    // Determine preview active_from (from session)
     $preview_active_from = $_SESSION['import_active_from'] ?? null;
-    if (empty($preview_active_from)) {
-        $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
-        if ($r && $row = $r->fetch_assoc()) $preview_active_from = $row['setting_value'] ?: null;
-    }
 }
 ?>
 <!DOCTYPE html>

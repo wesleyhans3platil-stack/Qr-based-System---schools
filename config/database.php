@@ -134,6 +134,7 @@ function getTimeSettings() {
     return $ts_cache;
 }
 
+
 /**
  * Store an uploaded file in the database for persistence across Railway deploys.
  * @param string $relativePath e.g. 'assets/uploads/logos/system_logo_123.png'

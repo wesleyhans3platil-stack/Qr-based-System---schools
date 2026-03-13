@@ -23,14 +23,6 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filter_date)) $filter_date = $today;
 $admin_role = $_SESSION['admin_role'] ?? 'super_admin';
 $admin_school_id = $_SESSION['admin_school_id'] ?? null;
 
-// System launch date: do not count attendance/absence before this date
-$launch_start_date = null;
-$lr = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='launch_start_date'");
-if ($lr && $lrow = $lr->fetch_assoc()) {
-    $launch_start_date = trim($lrow['setting_value'] ?? '');
-    if ($launch_start_date === '') $launch_start_date = null;
-}
-
 $is_division = in_array($admin_role, ['super_admin', 'superintendent', 'asst_superintendent']);
 
 $school_filter_sql = '';
@@ -70,9 +62,14 @@ if ($r) $total_teachers = $r->fetch_assoc()['cnt'];
 $timed_in_today = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL $school_filter_sql $extra_filter");
 if ($r) $timed_in_today = $r->fetch_assoc()['cnt'];
-$timed_in_today = min($timed_in_today, $total_students);
-$absent_today = max(0, $total_students - $timed_in_today);
-$attendance_rate = $total_students > 0 ? min(100, round(($timed_in_today / $total_students) * 100, 1)) : 0;
+
+// Only active students count towards present/absent
+$active_students = 0;
+$r = $conn->query("SELECT COUNT(*) as cnt FROM students st WHERE st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) " . ($admin_role === 'principal' && $admin_school_id ? " AND st.school_id = " . (int)$admin_school_id : "") . ($filter_school ? " AND st.school_id = $filter_school" : ""));
+if ($r) $active_students = $r->fetch_assoc()['cnt'];
+
+$absent_today = max(0, $active_students - $timed_in_today);
+$attendance_rate = $active_students > 0 ? min(100, round(($timed_in_today / $active_students) * 100, 1)) : 0;
 
 $timed_out_today = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN students st ON a.person_id = st.id AND st.status='active' AND st.grade_level_id IN (SELECT id FROM grade_levels WHERE name NOT IN ('Grade 11','Grade 12')) WHERE a.person_type='student' AND a.date='$filter_date' AND a.time_out IS NOT NULL $school_filter_sql $extra_filter");
@@ -98,10 +95,6 @@ if ($school_days_30 < 1) $school_days_30 = 1;
 
 $flagged_students = [];
 $effective_student_date_expr = "DATE(COALESCE(s.active_from, s.created_at))";
-if ($launch_start_date) {
-    $safe_launch = $conn->real_escape_string($launch_start_date);
-    $effective_student_date_expr = "DATE(GREATEST(COALESCE(s.active_from, s.created_at), '$safe_launch'))";
-}
 $flag_sql = "SELECT s.id, s.lrn, s.name, s.created_at, s.active_from, s.school_id, sch.name as school_name, sch.code as school_code, gl.name as grade_name, sec.name as section_name
     FROM students s
     LEFT JOIN schools sch ON s.school_id = sch.id

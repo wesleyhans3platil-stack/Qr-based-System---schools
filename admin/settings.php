@@ -167,28 +167,6 @@ if (isset($_POST['remove_logo'])) {
     $success = 'Logo removed.';
 }
 
-// Handle per-school launch date set/clear
-if (isset($_POST['set_school_launch'])) {
-    $school_id = intval($_POST['school_id'] ?? 0);
-    $date = trim($_POST['school_launch_date'] ?? '');
-    if ($school_id && $date) {
-        $key = 'launch_start_date_school_' . $school_id;
-        $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-        $stmt->bind_param("sss", $key, $date, $date);
-        $stmt->execute();
-        $success = 'School launch date saved.';
-    }
-}
-
-if (isset($_POST['clear_school_launch'])) {
-    $school_id = intval($_POST['school_id'] ?? 0);
-    if ($school_id) {
-        $key = 'launch_start_date_school_' . $school_id;
-        $conn->query("DELETE FROM system_settings WHERE setting_key='" . $conn->real_escape_string($key) . "'");
-        $success = 'School launch date cleared.';
-    }
-}
-
 // Handle system settings update
 if (isset($_POST['update_system'])) {
     $fields = ['division_name', 'system_name', 'sms_api_key', 'notification_numbers', 'google_client_id'];
@@ -196,39 +174,6 @@ if (isset($_POST['update_system'])) {
         $val = trim($_POST[$f] ?? '');
         $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
         $stmt->bind_param("sss", $f, $val, $val);
-        $stmt->execute();
-    }
-
-    // Launch start date (optional). Default to today if blank.
-    $launch_scope = $_POST['launch_scope'] ?? 'all';
-    $launch_start_raw = trim($_POST['launch_start_date'] ?? '');
-    $launch_start = '';
-    if ($launch_start_raw === '') {
-        $launch_start = date('Y-m-d');
-    } else {
-        // Normalize date formats (allow mm/dd/yyyy or yyyy-mm-dd)
-        $d = DateTime::createFromFormat('m/d/Y', $launch_start_raw);
-        if ($d && $d->format('m/d/Y') === $launch_start_raw) {
-            $launch_start = $d->format('Y-m-d');
-        } else {
-            $d = DateTime::createFromFormat('Y-m-d', $launch_start_raw);
-            if ($d) {
-                $launch_start = $d->format('Y-m-d');
-            } else {
-                $launch_start = date('Y-m-d');
-            }
-        }
-    }
-    $launch_school_id = intval($_POST['launch_school_id'] ?? 0);
-
-    if ($launch_scope === 'school' && $launch_school_id) {
-        $key = 'launch_start_date_school_' . $launch_school_id;
-        $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-        $stmt->bind_param("sss", $key, $launch_start, $launch_start);
-        $stmt->execute();
-    } else {
-        $stmt = $conn->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('launch_start_date', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-        $stmt->bind_param("ss", $launch_start, $launch_start);
         $stmt->execute();
     }
 
@@ -295,13 +240,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             <p>Configure time windows and manage admin accounts</p>
         </div>
 
-        <div style="margin-bottom:12px;">
-            <span style="display:inline-block;background:#eef2ff;border:1px solid #e0e7ff;padding:8px 12px;border-radius:8px;font-weight:600;color:#3730a3;">
-                <i class="fas fa-flag" style="margin-right:8px;color:#4338ca;"></i> Launch Start Date:
-                <span style="margin-left:8px;color:inherit;"><?= !empty($sys['launch_start_date']) ? htmlspecialchars($sys['launch_start_date']) : '<span style="color:#dc2626;font-weight:700;">Not set</span>' ?></span>
-            </span>
-        </div>
-
         <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle"></i> <?= $success ?></div><?php endif; ?>
         <?php if ($error): ?><div class="alert alert-error"><i class="fas fa-times-circle"></i> <?= $error ?></div><?php endif; ?>
 
@@ -366,76 +304,10 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <label>System Name</label>
                         <input type="text" name="system_name" class="form-control" value="<?= htmlspecialchars($sys['system_name'] ?? 'QR Attendance System') ?>" placeholder="e.g. QR Attendance System">
                     </div>
-                    <div class="form-group">
-                        <label>Launch Start Date (optional)</label>
-                        <?php
-                            $launchVal = $sys['launch_start_date'] ?? '';
-                            if (!empty($launchVal)) {
-                                $d = DateTime::createFromFormat('m/d/Y', $launchVal);
-                                if ($d && $d->format('m/d/Y') === $launchVal) {
-                                    $launchVal = $d->format('Y-m-d');
-                                }
-                            }
-                            if (empty($launchVal)) {
-                                $launchVal = date('Y-m-d');
-                            }
-
-                            // Load school-specific launch dates
-                            $schoolLaunchDate = '';
-                            $schoolLaunchId = '';
-                            foreach ($schools as $sch) {
-                                $key = 'launch_start_date_school_' . $sch['id'];
-                                if (!empty($sys[$key])) {
-                                    $schoolLaunchDate = $sys[$key];
-                                    $schoolLaunchId = $sch['id'];
-                                    break;
-                                }
-                            }
-                        ?>
-
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                            <div style="flex:1;min-width:200px;">
-                                <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Apply to</label>
-                                <select name="launch_scope" class="form-control" onchange="document.getElementById('schoolLaunchRow').style.display = this.value === 'school' ? 'flex' : 'none';">
-                                    <option value="all" <?= empty($schoolLaunchId) ? 'selected' : '' ?>>All schools</option>
-                                    <option value="school" <?= !empty($schoolLaunchId) ? 'selected' : '' ?>>Individual school</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;min-width:200px;">
-                                <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Launch Date</label>
-                                <input type="text" name="launch_start_date" class="form-control styled-date" placeholder="YYYY-MM-DD" value="<?= htmlspecialchars($launchVal) ?>">
-                            </div>
-                            <div id="schoolLaunchRow" style="flex:1;min-width:220px;display:<?= !empty($schoolLaunchId) ? 'flex' : 'none' ?>;gap:12px;">
-                                <div style="flex:1;">
-                                    <label style="display:block;font-size:0.85rem;margin-bottom:4px;">School</label>
-                                    <select name="launch_school_id" class="form-control">
-                                        <option value="">-- Choose school --</option>
-                                        <?php foreach ($schools as $sch): ?>
-                                            <option value="<?= $sch['id'] ?>" <?= ($sch['id'] == $schoolLaunchId ? 'selected' : '') ?>><?= htmlspecialchars($sch['name']) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <small style="color:var(--text-muted);display:block;margin-top:6px;">If set, new imports without an "Active from" date will default to this launch date. Choose "All schools" or set per-school.</small>
-                    </div>
-                    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
                     <button type="submit" name="update_system" class="btn btn-primary" style="width:100%;"><i class="fas fa-save"></i> Save System Settings</button>
                 </form>
             </div>
         </div>
-
-        <?php
-            // Build per-school launch date rows (falls back to global date if not set per school)
-            $globalLaunch = $sys['launch_start_date'] ?? '';
-            $schoolLaunchRows = [];
-            foreach ($schools as $sch) {
-                $key = 'launch_start_date_school_' . $sch['id'];
-                $date = $sys[$key] ?? $globalLaunch;
-                $schoolLaunchRows[] = ['id' => $sch['id'], 'school' => $sch['name'], 'date' => $date ?: ''];
-            }
-        ?>
 
         <!-- Holiday Management -->
         <div class="card" style="margin-top:24px;">
@@ -514,45 +386,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                     <i class="fas fa-info-circle"></i> <?= count($holidays_list) ?> holiday<?= count($holidays_list) !== 1 ? 's' : '' ?> configured. Weekends are automatically excluded.
                 </div>
             <?php endif; ?>
-        </div>
-
-        <div class="card" style="margin-top:24px;">
-            <div class="card-title"><i class="fas fa-school"></i> Launch Date by School</div>
-            <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 12px;">Set a school-specific launch date here (or leave blank to use the global launch date).</p>
-            <div class="table-wrapper">
-                <table>
-                    <thead><tr><th>School</th><th>Launch Date</th><th style="width:170px;">Actions</th></tr></thead>
-                    <tbody>
-                        <?php foreach ($schoolLaunchRows as $row): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($row['school']) ?></td>
-                                <td style="font-weight:600;">
-                                    <?= $row['date'] ? htmlspecialchars($row['date']) : '<span style="color:#6b7280;">(not set)</span>' ?>
-                                    <?php if ($row['date'] && $row['date'] === ($sys['launch_start_date'] ?? '')): ?>
-                                        <span style="font-size:0.75rem;color:#6b7280;">(global)</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <form method="POST" style="display:flex;gap:8px;align-items:center;">
-                                        <input type="hidden" name="school_id" value="<?= $row['id'] ?>">
-                                        <?php
-                                            $schoolDate = $row['date'] ?: ($sys['launch_start_date'] ?? '');
-                                            // Normalize to yyyy-mm-dd if possible
-                                            $parsed = DateTime::createFromFormat('m/d/Y', $schoolDate);
-                                            if ($parsed && $parsed->format('m/d/Y') === $schoolDate) {
-                                                $schoolDate = $parsed->format('Y-m-d');
-                                            }
-                                        ?>
-                                        <input type="text" name="school_launch_date" class="styled-date" placeholder="YYYY-MM-DD" value="<?= htmlspecialchars($schoolDate) ?>" style="flex:1;">
-                                        <button type="submit" name="set_school_launch" class="btn" style="padding:6px 10px;background:#10b981;color:#fff;border-radius:8px;border:none;">Set</button>
-                                        <button type="submit" name="clear_school_launch" class="btn" style="padding:6px 10px;background:#ef4444;color:#fff;border-radius:8px;border:none;">Clear</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
         </div>
 
         <!-- Admin Accounts -->

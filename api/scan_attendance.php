@@ -72,6 +72,15 @@ if (!$person) {
 $person_id = $person['id'];
 $school_id = $person['school_id'];
 
+// If the student was imported as inactive, activate them on first successful scan.
+if ($person_type === 'student' && ($person['status'] ?? '') !== 'active') {
+    $update = $conn->prepare("UPDATE students SET status = 'active', active_from = COALESCE(active_from, ?) WHERE id = ?");
+    $today_date = date('Y-m-d');
+    $update->bind_param('si', $today_date, $person_id);
+    $update->execute();
+    $update->close();
+}
+
 // ══════════════════════════════════════════════
 // 2. TIME SETTINGS — cached, no extra query per scan
 // ══════════════════════════════════════════════
@@ -344,13 +353,13 @@ ob_end_flush();
  */
 function lookupStudent($conn, $qr_code) {
     $stmt = $conn->prepare(
-        "SELECT s.id, s.name, s.lrn, s.school_id, sch.name AS school_name,
+        "SELECT s.id, s.name, s.lrn, s.school_id, s.status, s.active_from, sch.name AS school_name,
                 gl.name AS grade_name, sec.name AS section_name
          FROM students s
          LEFT JOIN schools sch ON s.school_id = sch.id
          LEFT JOIN grade_levels gl ON s.grade_level_id = gl.id
          LEFT JOIN sections sec ON s.section_id = sec.id
-         WHERE s.qr_code = ? AND s.status = 'active'
+         WHERE s.qr_code = ?
          LIMIT 1"
     );
     $stmt->bind_param("s", $qr_code);

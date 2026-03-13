@@ -72,6 +72,13 @@ $teachers_in = 0;
 $r = $conn->query("SELECT COUNT(DISTINCT a.person_id) as cnt FROM attendance a INNER JOIN teachers t ON a.person_id = t.id AND t.status='active' WHERE a.person_type='teacher' AND a.date='$filter_date' AND a.time_in IS NOT NULL $school_filter_sql $extra_filter");
 if ($r) $teachers_in = $r->fetch_assoc()['cnt'];
 
+// For super admin, fetch inactive students (they still count in total students)
+$inactive_students = [];
+if ($admin_role === 'super_admin') {
+    $ri = $conn->query("SELECT s.id, s.lrn, s.name, sch.name as school_name FROM students s LEFT JOIN schools sch ON s.school_id = sch.id WHERE s.status <> 'active' ORDER BY s.name LIMIT 20");
+    if ($ri) while ($row = $ri->fetch_assoc()) $inactive_students[] = $row;
+}
+
 // ─── Per-School Breakdown ───
 $school_breakdown = [];
 $school_sql = "SELECT s.id, s.name, s.code,
@@ -186,6 +193,12 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                 <div class="stat-icon info"><i class="fas fa-chalkboard-teacher"></i></div>
                 <div class="stat-info"><h3><?= $teachers_in ?>/<?= $total_teachers ?></h3><span>Teachers Present</span></div>
             </div>
+            <?php if ($admin_role === 'super_admin'): ?>
+            <div class="stat-card warning">
+                <div class="stat-icon warning"><i class="fas fa-user-slash"></i></div>
+                <div class="stat-info"><h3><?= count($inactive_students) ?></h3><span>Inactive Students</span></div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="dashboard-grid">
@@ -263,6 +276,25 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php if ($admin_role === 'super_admin'): ?>
+            <!-- Inactive Students (Super Admin only) -->
+            <div class="card">
+                <div class="card-title"><i class="fas fa-user-slash" style="color:var(--warning);"></i> Inactive Students <span class="badge badge-warning" style="margin-left:8px;"><?= count($inactive_students) ?></span></div>
+                <div style="max-height:400px;overflow-y:auto;">
+                    <?php if (empty($inactive_students)): ?>
+                        <div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No inactive students</h3><p>All students are currently active.</p></div>
+                    <?php else: foreach ($inactive_students as $st): ?>
+                        <div class="flag-item">
+                            <div>
+                                <div style="font-weight:700;font-size:0.9rem;"><?= htmlspecialchars($st['name']) ?></div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);">LRN: <?= htmlspecialchars($st['lrn']) ?> · <?= htmlspecialchars($st['school_name'] ?? '') ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 

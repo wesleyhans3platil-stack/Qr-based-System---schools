@@ -26,8 +26,10 @@ if (isset($_POST['add_student'])) {
         $error = 'LRN, Name, School, Grade Level, and Section are required.';
     } else {
         $qr_code = 'STU-' . $lrn;
-        $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssiisss", $lrn, $name, $school_id, $grade_level_id, $section_id, $guardian_contact, $qr_code);
+        // Newly imported SHS students start inactive until first scan.
+        $stmt = $conn->prepare("INSERT INTO students (lrn, name, school_id, grade_level_id, section_id, guardian_contact, qr_code, status, active_from) VALUES (?, ?, ?, ?, ?, ?, ?, 'inactive', ?) ");
+        $today = date('Y-m-d');
+        $stmt->bind_param("ssiissss", $lrn, $name, $school_id, $grade_level_id, $section_id, $guardian_contact, $qr_code, $today);
         if ($stmt->execute()) {
             $success = 'SHS Student registered successfully!';
         } else {
