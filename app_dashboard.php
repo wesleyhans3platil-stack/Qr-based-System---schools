@@ -255,10 +255,10 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         :root{
             --pri:#059669;--pri-l:#34d399;--pri-d:#047857;
-            --green:#059669;--red:#dc2626;--amber:#d97706;--blue:#2563eb;--teal:#0d9488;
+            --green:#059669;--red:#dc2626;--amber:#d97706;--blue:#059669;--teal:#0d9488;
             --bg:#f8faf9;--surface:#fff;--surface-dim:#f0f2f0;--on-surface:#1a1c1a;--on-surface-v:#49504a;
             --outline:#c1c9bf;--outline-v:#dde3db;
-            --green-c:#d1fae5;--red-c:#fee2e2;--amber-c:#fef3c7;--blue-c:#dbeafe;--teal-c:#ccfbf1;
+            --green-c:#d1fae5;--red-c:#fee2e2;--amber-c:#fef3c7;--blue-c:#d1fae5;--teal-c:#ccfbf1;
             --el1:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.1);
             --el2:0 2px 4px rgba(0,0,0,.06),0 4px 6px rgba(0,0,0,.08);
             --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
