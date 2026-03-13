@@ -180,6 +180,9 @@ if (isset($_POST['update_system'])) {
     // Launch start date (optional)
     $launch_scope = $_POST['launch_scope'] ?? 'all';
     $launch_start = trim($_POST['launch_start_date'] ?? '');
+    if ($launch_start === '') {
+        $launch_start = date('Y-m-d');
+    }
     $launch_school_id = intval($_POST['launch_school_id'] ?? 0);
 
     if ($launch_scope === 'school' && $launch_school_id) {
@@ -322,12 +325,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
                         <?php
                             $launchVal = $sys['launch_start_date'] ?? '';
                             if (empty($launchVal)) {
-                                $year = date('Y');
-                                $candidate = "$year-06-01";
-                                if (date('Y-m-d') > $candidate) {
-                                    $candidate = ($year + 1) . '-06-01';
-                                }
-                                $launchVal = $candidate;
+                                $launchVal = date('Y-m-d');
                             }
 
                             // Load school-specific launch dates
