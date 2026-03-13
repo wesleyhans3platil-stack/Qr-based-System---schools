@@ -56,6 +56,5 @@ if ($isApp || $isMobileDevice):
     <a href="/admin/attendance.php" class="<?= $current === 'attendance' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-clipboard-list"></i><span>Attendance</span></a>
     <a href="/admin/school_browser.php" class="<?= $current === 'school_browser' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-school"></i><span>Schools</span></a>
     <a href="/admin/reports.php" class="<?= $current === 'reports' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-file-alt"></i><span>Reports</span></a>
-    <a href="/Qrscanattendance.php" class="<?= $current === 'Qrscanattendance' ? 'active' : '' ?>"><div class="pill"></div><i class="fas fa-qrcode"></i><span>Scanner</span></a>
 </nav>
 <?php endif; ?>

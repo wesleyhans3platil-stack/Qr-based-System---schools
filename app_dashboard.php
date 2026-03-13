@@ -648,7 +648,6 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         <a href="admin/attendance.php" class="nav-item"><div class="pill"></div><i class="fas fa-clipboard-list"></i><span>Attendance</span></a>
         <a href="admin/school_browser.php" class="nav-item"><div class="pill"></div><i class="fas fa-school"></i><span>Schools</span></a>
         <a href="admin/reports.php" class="nav-item"><div class="pill"></div><i class="fas fa-file-alt"></i><span>Reports</span></a>
-        <a href="Qrscanattendance.php" class="nav-item"><div class="pill"></div><i class="fas fa-qrcode"></i><span>Scanner</span></a>
     </nav>
 
     <script>
