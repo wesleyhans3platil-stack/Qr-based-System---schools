@@ -184,16 +184,27 @@
         }
     });
 
-    // Smooth navigation: intercept bottom nav clicks and load content via AJAX
+    // Smooth navigation: intercept internal link clicks and load content via AJAX
     document.addEventListener('click', function(e) {
-        const anchor = e.target.closest('.nav-bar .nav-item');
+        const anchor = e.target.closest('a');
         if (!anchor) return;
         if (e.defaultPrevented) return;
         if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
         const href = anchor.getAttribute('href');
-        if (!href) return;
+        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        if (anchor.target && anchor.target !== '_self') return;
+        if (anchor.dataset.noAjax !== undefined) return;
+
+        // Only handle same-origin navigation
+        const targetUrl = new URL(href, window.location.origin);
+        if (targetUrl.origin !== window.location.origin) return;
+
+        // Only intercept main content and nav bar links; allow external or form-related links to behave normally
+        if (!anchor.closest('.nav-bar') && !anchor.closest('#mainContent') && !anchor.closest('.content')) return;
+
         e.preventDefault();
-        navigateTo(href);
+        navigateTo(targetUrl.pathname + targetUrl.search);
     });
 
     window.addEventListener('popstate', function(e) {
