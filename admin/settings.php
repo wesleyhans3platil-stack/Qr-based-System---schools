@@ -262,15 +262,6 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             <p>Configure time windows and manage admin accounts</p>
         </div>
 
-        <?php // Highlight launch start date for easy visibility ?>
-        <div style="margin-bottom:16px;">
-            <div style="display:inline-flex;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;background:#eff6ff;border:1px solid #bfdbfe;">
-                <span style="font-size:0.95rem;font-weight:700;color:#1e40af;"><i class="fas fa-flag" style="margin-right:6px;color:#1d4ed8;"></i> Launch Start Date</span>
-                <span style="font-size:0.95rem;color:#0f172a;"><?= !empty($sys['launch_start_date']) ? htmlspecialchars($sys['launch_start_date']) : '<span style="color:#dc2626;font-weight:700;">Not set</span>' ?></span>
-            </div>
-        </div>
-
-        <?php // Show current Launch Start Date prominently for super-admins ?>
         <div style="margin-bottom:12px;">
             <span style="display:inline-block;background:#eef2ff;border:1px solid #e0e7ff;padding:8px 12px;border-radius:8px;font-weight:600;color:#3730a3;">
                 <i class="fas fa-flag" style="margin-right:8px;color:#4338ca;"></i> Launch Start Date:
@@ -332,7 +323,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
 
             <!-- SMS & System Settings -->
             <div class="card">
-                <div class="card-title"><i class="fas fa-cogs"></i> Division & SMS Settings</div>
+                <div class="card-title"><i class="fas fa-cogs"></i> System Configuration</div>
                 <form method="POST">
                     <div class="form-group">
                         <label>Division Name</label>
