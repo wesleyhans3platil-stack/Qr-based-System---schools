@@ -590,25 +590,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $holidays_list[] = $row; }
             </div>
         </div>
 
-        <!-- Sample Data Generator -->
-        <div class="card" style="margin-top:24px;border:2px dashed var(--border);">
-            <div class="card-title"><i class="fas fa-flask" style="color:#8b5cf6;"></i> Sample Data Generator</div>
-            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px;">Generate sample/demo students with Filipino names across all active schools. Sections and QR codes are created automatically.</p>
-            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px;background:var(--bg);border-radius:12px;border:1px solid var(--border);">
-                <div class="form-group" style="margin-bottom:0;flex:0 0 200px;">
-                    <label style="font-size:0.78rem;font-weight:600;margin-bottom:4px;display:block;">Students per School</label>
-                    <input type="number" id="seedCount" class="form-control" value="10" min="1" max="50" style="padding:8px 12px;">
-                </div>
-                <button type="button" class="btn btn-primary" id="seedBtn" onclick="seedStudents()" style="padding:9px 20px;white-space:nowrap;background:#8b5cf6;">
-                    <i class="fas fa-wand-magic-sparkles"></i> Generate Sample Students
-                </button>
-                <button type="button" class="btn" id="clearSeedBtn" onclick="clearSeedData()" style="padding:9px 20px;white-space:nowrap;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;cursor:pointer;">
-                    <i class="fas fa-trash"></i> Clear Sample Data
-                </button>
-            </div>
-            <div id="seedResult" style="display:none;margin-top:16px;"></div>
         </div>
-    </div>
 
     <!-- Add Admin Modal -->
     <div class="modal-overlay" id="addAdminModal">
