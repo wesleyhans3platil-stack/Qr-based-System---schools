@@ -18,6 +18,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -98,9 +100,16 @@ public class MainActivity extends AppCompatActivity {
     private Button retryButton;
     private TextView logoutOfflineBtn;
 
-    private Handler webRefreshHandler;
-    private Runnable webRefreshRunnable;
-    private static final long WEB_REFRESH_INTERVAL_MS = 5000; // 5 seconds
+    private final Handler jsPollHandler = new Handler(Looper.getMainLooper());
+    private final Runnable jsPollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (webView != null) {
+                webView.post(() -> webView.evaluateJavascript("if(typeof pollData==='function'){pollData();}", null));
+            }
+            jsPollHandler.postDelayed(this, 5000);
+        }
+    };
 
     // File upload
     private ValueCallback<Uri[]> fileUploadCallback;
@@ -143,7 +152,6 @@ public class MainActivity extends AppCompatActivity {
         setupSwipeRefresh();
         setupButtons();
         loadApp();
-        startWebViewAutoRefresh();
         scheduleAbsenceCheck();
         showWelcomeNotification();
         // Run an immediate check once at login so admins get absence alerts like the welcome
@@ -245,7 +253,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setAppCacheEnabled(false);
-        settings.setAppCachePath(getCacheDir().getAbsolutePath());
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setSupportZoom(false);
@@ -586,10 +593,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (isNetworkAvailable()) {
+            webView.clearCache(true);
+            webView.clearHistory();
             webView.loadUrl(pendingUrl);
         } else {
             showOffline();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Ensure JS polling continues when returning to the app
+        jsPollHandler.postDelayed(jsPollRunnable, 1000);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        jsPollHandler.removeCallbacks(jsPollRunnable);
     }
 
     private String addVersionParam(String url) {
@@ -723,31 +745,7 @@ public class MainActivity extends AppCompatActivity {
         finish();
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
-    private void startWebViewAutoRefresh() {
-        if (webRefreshHandler == null) {
-            webRefreshHandler = new Handler(getMainLooper());
-        }
-        stopWebViewAutoRefresh();
-        webRefreshRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (webView != null) {
-                    webView.post(() -> webView.evaluateJavascript(
-                        "try{if(typeof pollData==='function'){pollData();}}catch(e){}", null));
-                }
-                if (webRefreshHandler != null) {
-                    webRefreshHandler.postDelayed(this, WEB_REFRESH_INTERVAL_MS);
-                }
-            }
-        };
-        webRefreshHandler.postDelayed(webRefreshRunnable, WEB_REFRESH_INTERVAL_MS);
-    }
 
-    private void stopWebViewAutoRefresh() {
-        if (webRefreshHandler != null && webRefreshRunnable != null) {
-            webRefreshHandler.removeCallbacks(webRefreshRunnable);
-        }
-    }
     // ═══════════════════════════════════════════════════════════
     //  BACK BUTTON
     // ═══════════════════════════════════════════════════════════
@@ -775,13 +773,11 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         webView.onResume();
         CookieManager.getInstance().flush();
-        startWebViewAutoRefresh();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        stopWebViewAutoRefresh();
         webView.onPause();
         CookieManager.getInstance().flush();
     }
