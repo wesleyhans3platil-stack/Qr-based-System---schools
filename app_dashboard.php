@@ -641,7 +641,7 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
     }
 
     // ═══ REAL-TIME ENGINE ═══
-    const POLL_INTERVAL = 5000; // 5 seconds
+    const POLL_INTERVAL = 15000; // 15 seconds (reduces server load while still updating frequently)
     let isPolling = false;
     let pollTimer = null;
     const CIRC = <?= json_encode(2 * M_PI * 52) ?>;
@@ -715,15 +715,18 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         if (totEl) totEl.textContent = total;
     }
 
-    // Update stat cards
+    // Cache stat elements and update them efficiently
+    const statEls = {};
+    document.querySelectorAll('[data-stat]').forEach(el => {
+        statEls[el.dataset.stat] = el;
+    });
+
     function updateStats(stats) {
-        document.querySelectorAll('[data-stat]').forEach(el => {
-            const key = el.dataset.stat;
-            if (stats[key] !== undefined) {
-                const hasPct = key === 'teacher_att_pct';
-                animateValue(el, stats[key]);
-            }
-        });
+        for (const key in stats) {
+            const el = statEls[key];
+            if (!el) continue;
+            animateValue(el, stats[key]);
+        }
     }
 
     // Update ranking list
