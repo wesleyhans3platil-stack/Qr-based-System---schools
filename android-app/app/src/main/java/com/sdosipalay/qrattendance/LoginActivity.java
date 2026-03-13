@@ -32,6 +32,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+import android.util.Log;
 
 /**
  * ══════════════════════════════════════════════════════════════════
@@ -171,18 +172,37 @@ public class LoginActivity extends AppCompatActivity {
 
                 int responseCode = conn.getResponseCode();
 
-                // Extract session cookie
+                // Extract session cookie (robust: header key case-insensitive + CookieStore fallback)
                 String sessionCookie = "";
                 Map<String, List<String>> headers = conn.getHeaderFields();
                 List<String> cookies = headers.get("Set-Cookie");
+                if (cookies == null) {
+                    for (Map.Entry<String, List<String>> h : headers.entrySet()) {
+                        if (h.getKey() != null && h.getKey().equalsIgnoreCase("Set-Cookie")) {
+                            cookies = h.getValue();
+                            break;
+                        }
+                    }
+                }
                 if (cookies != null) {
                     for (String cookie : cookies) {
-                        if (cookie.contains("PHPSESSID")) {
+                        if (cookie != null && cookie.toLowerCase().contains("phpsessid")) {
                             sessionCookie = cookie.split(";")[0];
                             break;
                         }
                     }
                 }
+                // Fallback: check CookieManager store (if cookies were accepted)
+                try {
+                    java.net.CookieStore store = cookieManager.getCookieStore();
+                    List<java.net.HttpCookie> stored = store.getCookies();
+                    for (java.net.HttpCookie hc : stored) {
+                        if ("PHPSESSID".equalsIgnoreCase(hc.getName())) {
+                            sessionCookie = "PHPSESSID=" + hc.getValue();
+                            break;
+                        }
+                    }
+                } catch (Exception ignored) {}
 
                 // Check if login succeeded
                 // Android app gets JSON 200 response with {success: true, full_name: ...}
@@ -193,6 +213,7 @@ public class LoginActivity extends AppCompatActivity {
                     while ((line = reader.readLine()) != null) sb.append(line);
                     reader.close();
                     String body = sb.toString();
+                        Log.d("LoginActivity", "Login response body: " + body);
 
                     // Try to parse as JSON success response
                     try {
@@ -203,6 +224,7 @@ public class LoginActivity extends AppCompatActivity {
                             final String role = json.optString("role", "");
                             final int schoolId = json.optInt("school_id", 0);
                             final int adminId = json.optInt("admin_id", 0);
+                            Log.d("LoginActivity", "Login success, cookie=" + sessionCookie + " full_name=" + fullName);
                             runOnUiThread(() -> {
                                 SessionManager session = new SessionManager(LoginActivity.this);
                                 session.saveLogin(finalCookie, fullName, role, schoolId, adminId);
@@ -253,6 +275,7 @@ public class LoginActivity extends AppCompatActivity {
                 });
 
             } catch (Exception e) {
+                Log.e("LoginActivity", "Login exception", e);
                 runOnUiThread(() -> {
                     showError("Connection failed. Check your network.");
                     setLoading(false);

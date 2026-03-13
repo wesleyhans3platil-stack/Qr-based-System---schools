@@ -39,7 +39,7 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
+// progressBar removed per request
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -92,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int WELCOME_NOTIFICATION_ID = 2000;
 
     private WebView webView;
-    private ProgressBar progressBar;
     private SwipeRefreshLayout swipeRefresh;
     private View offlineView;
     private Button retryButton;
@@ -129,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Find views
         webView = findViewById(R.id.webView);
-        progressBar = findViewById(R.id.progressBar);
+        // progressBar removed
         swipeRefresh = findViewById(R.id.swipeRefresh);
         offlineView = findViewById(R.id.offlineView);
         retryButton = findViewById(R.id.retryButton);
@@ -238,12 +237,11 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                progressBar.setVisibility(View.VISIBLE);
+                // loading indicator removed — no action
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                progressBar.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
                 hideOffline();
             }
@@ -251,7 +249,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    progressBar.setVisibility(View.GONE);
                     swipeRefresh.setRefreshing(false);
                     showOffline();
                 }
@@ -300,8 +297,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
-                progressBar.setProgress(newProgress);
-                if (newProgress >= 100) progressBar.setVisibility(View.GONE);
+                // progress updates removed
             }
 
             // ── FILE UPLOAD (<input type="file">) ──

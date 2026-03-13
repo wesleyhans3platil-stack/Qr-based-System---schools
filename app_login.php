@@ -39,17 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $conn->query("UPDATE admins SET last_login = NOW() WHERE id = " . $admin['id']);
 
-                // Android app: return JSON with name, role, school so native app can display properly
+                // Android app: return JSON with name so it can show a welcome notification
                 $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
                 if (stripos($ua, 'QRAttendanceApp') !== false) {
                     header('Content-Type: application/json');
-                    echo json_encode([
-                        'success' => true,
-                        'full_name' => $admin['full_name'],
-                        'role' => $admin['role'],
-                        'school_id' => (int)$admin['school_id'],
-                        'admin_id' => (int)$admin['id']
-                    ]);
+                    echo json_encode(['success' => true, 'full_name' => $admin['full_name']]);
                     exit;
                 }
 
