@@ -24,8 +24,12 @@
     const shouldRefresh = !noRefreshPages.some(p => currentPath.includes(p));
 
     // Auto-refresh interval (in ms). Set to 0 to disable.
-    const AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+    const isAppWebView = /QRAttendanceApp|wv/.test(navigator.userAgent);
+    const AUTO_REFRESH_INTERVAL_MS = isAppWebView ? 0 : 2 * 60 * 1000; // 2 minutes (disabled in Android app)
     let autoRefreshTimer = null;
+
+    // Add a class for CSS tweaks when inside the Android WebView
+    if (isAppWebView) document.documentElement.classList.add('app-webview');
 
     const getMainContent = () => document.getElementById('mainContent') || document.querySelector('.main-content');
 
@@ -61,6 +65,16 @@
     }
 
     function navigateTo(url, replaceHistory = false) {
+        // In the Android WebView, use normal navigation to avoid extra DOM swaps/stutter
+        if (isAppWebView) {
+            if (replaceHistory) {
+                location.replace(url);
+            } else {
+                location.href = url;
+            }
+            return;
+        }
+
         setContentTransition('exit');
         fetch(url, { credentials: 'same-origin' })
             .then(r => r.text())

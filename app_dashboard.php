@@ -241,6 +241,11 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
         .content.slide-enter{opacity:0;transform:translateX(20px);}
         .content.slide-enter-active{opacity:1;transform:translateX(0);}
         .content.slide-exit{opacity:0.2;transform:translateX(-20px);}
+        body.app-webview .content,
+        body.app-webview .nav-item {
+            transition: none !important;
+        }
+        body.app-webview .content{transform:none!important;}
 
         /* ═══ App Bar ═══ */
         .app-bar{position:sticky;top:0;z-index:100;background:var(--pri);color:#fff;padding:calc(10px + var(--safe-t)) 16px 14px}
