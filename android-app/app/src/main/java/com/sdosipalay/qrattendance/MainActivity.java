@@ -251,8 +251,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        settings.setAppCacheEnabled(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setAppCacheEnabled(true); // allow caching of static assets for faster loads
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setSupportZoom(false);
