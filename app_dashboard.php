@@ -34,6 +34,16 @@ if ($lr && $lrow = $lr->fetch_assoc()) {
     $launch_start_date = trim($lrow['setting_value'] ?? '');
     if ($launch_start_date === '') $launch_start_date = null;
 }
+// Per-school launch dates (e.g. launch_start_date_school_12)
+$school_launch_dates = [];
+$lr2 = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key LIKE 'launch_start_date_school_%'");
+if ($lr2) {
+    while ($row = $lr2->fetch_assoc()) {
+        if (preg_match('/^launch_start_date_school_(\d+)$/', $row['setting_key'], $m)) {
+            $school_launch_dates[(int)$m[1]] = trim($row['setting_value']);
+        }
+    }
+}
 
 $is_division = in_array($admin_role, ['super_admin', 'superintendent', 'asst_superintendent']);
 $role_label = match($admin_role) {
@@ -70,6 +80,11 @@ $total_students = 0;
 $student_effective_date = "DATE(created_at)";
 if ($launch_start_date) {
     $safe_launch = $conn->real_escape_string($launch_start_date);
+    $student_effective_date = "DATE(GREATEST(created_at, '$safe_launch'))";
+}
+// Use school-specific launch date if configured
+if ($filter_school && isset($school_launch_dates[$filter_school]) && !empty($school_launch_dates[$filter_school])) {
+    $safe_launch = $conn->real_escape_string($school_launch_dates[$filter_school]);
     $student_effective_date = "DATE(GREATEST(created_at, '$safe_launch'))";
 }
 $r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND ($student_effective_date < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)) " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = " . (int)$admin_school_id : "") . ($filter_school ? " AND school_id = $filter_school" : ""));

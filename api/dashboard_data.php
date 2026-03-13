@@ -63,6 +63,19 @@ if ($launch_start_date) {
     $student_effective_date = "DATE(GREATEST(COALESCE(active_from, created_at), '$safe_launch'))";
     $student_effective_date_sub = "DATE(GREATEST(COALESCE(st.active_from, st.created_at), '$safe_launch'))";
 }
+$school_launch_date = null;
+if ($filter_school) {
+    $key = 'launch_start_date_school_' . (int)$filter_school;
+    $r2 = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='" . $conn->real_escape_string($key) . "'");
+    if ($r2 && $row2 = $r2->fetch_assoc()) {
+        $school_launch_date = trim($row2['setting_value'] ?? '');
+    }
+}
+if ($school_launch_date) {
+    $safe_launch = $conn->real_escape_string($school_launch_date);
+    $student_effective_date = "DATE(GREATEST(COALESCE(active_from, created_at), '$safe_launch'))";
+    $student_effective_date_sub = "DATE(GREATEST(COALESCE(st.active_from, st.created_at), '$safe_launch'))";
+}
 $r = $conn->query("SELECT COUNT(*) as cnt FROM students WHERE status='active' AND ($student_effective_date < '$filter_date' OR id IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)) " . ($admin_role === 'principal' && $admin_school_id ? "AND school_id = " . (int)$admin_school_id : "") . ($filter_school ? " AND school_id = $filter_school" : ""));
 if ($r) $total_students = $r->fetch_assoc()['cnt'];
 
