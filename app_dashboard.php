@@ -235,8 +235,12 @@ $non_school_reason = $non_school ? getNonSchoolDayReason($filter_date, $conn) : 
             --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
         }
         html,body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--on-surface);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-        .content{transition:opacity .25s ease, transform .25s ease;will-change:opacity,transform;}
-        .content.fade-out{opacity:.25;transform:translateX(-14px);pointer-events:none;}
+        .content{transition:opacity .25s ease, transform .3s ease;will-change:transform,opacity;}
+        .content.fade-out{opacity:.25;transform:translateX(-12px);}
+        .content.fade-in{opacity:1;transform:translateX(0);}
+        .content.slide-enter{opacity:0;transform:translateX(20px);}
+        .content.slide-enter-active{opacity:1;transform:translateX(0);}
+        .content.slide-exit{opacity:0.2;transform:translateX(-20px);}
 
         /* ═══ App Bar ═══ */
         .app-bar{position:sticky;top:0;z-index:100;background:var(--pri);color:#fff;padding:calc(10px + var(--safe-t)) 16px 14px}

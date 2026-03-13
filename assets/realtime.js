@@ -23,12 +23,22 @@
     const currentPath = window.location.pathname;
     const shouldRefresh = !noRefreshPages.some(p => currentPath.includes(p));
 
+    // Auto-refresh interval (in ms). Set to 0 to disable.
+    const AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+    let autoRefreshTimer = null;
+
     const getMainContent = () => document.getElementById('mainContent') || document.querySelector('.main-content');
-    const setContentLoading = (loading) => {
+
+    const setContentTransition = (phase) => {
         const el = getMainContent();
         if (!el) return;
-        if (loading) el.classList.add('fade-out');
-        else el.classList.remove('fade-out');
+        el.classList.remove('slide-enter', 'slide-enter-active', 'slide-exit', 'fade-out', 'fade-in');
+        if (phase === 'exit') {
+            el.classList.add('slide-exit');
+        } else if (phase === 'enter') {
+            el.classList.add('slide-enter');
+            requestAnimationFrame(() => el.classList.add('slide-enter-active'));
+        }
     };
 
     function updateNavActive(url) {
@@ -41,8 +51,17 @@
         });
     }
 
+    function scheduleAutoRefresh() {
+        if (!AUTO_REFRESH_INTERVAL_MS) return;
+        if (autoRefreshTimer) clearTimeout(autoRefreshTimer);
+        autoRefreshTimer = setTimeout(() => {
+            if (!shouldRefresh) return;
+            navigateTo(window.location.href, true);
+        }, AUTO_REFRESH_INTERVAL_MS);
+    }
+
     function navigateTo(url, replaceHistory = false) {
-        setContentLoading(true);
+        setContentTransition('exit');
         fetch(url, { credentials: 'same-origin' })
             .then(r => r.text())
             .then(html => {
@@ -81,12 +100,12 @@
 
                     // Flash indicator
                     showSyncFlash();
-                }
-            })
-            .catch(() => {})
-            .finally(() => {
-                setContentLoading(false);
-                if (replaceHistory) {
+
+                    // Animate in
+                    setContentTransition('enter');
+
+                // Schedule next auto-refresh
+                scheduleAutoRefresh();
                     history.replaceState({ url }, '', url);
                 } else {
                     history.pushState({ url }, '', url);
@@ -118,6 +137,7 @@
                 }
 
                 updateSyncIndicator(true, data.server_time);
+                scheduleAutoRefresh();
             })
             .catch(() => {
                 failCount++;
@@ -184,27 +204,16 @@
         }
     });
 
-    // Smooth navigation: intercept internal link clicks and load content via AJAX
+    // Smooth navigation: intercept bottom nav clicks and load content via AJAX
     document.addEventListener('click', function(e) {
-        const anchor = e.target.closest('a');
+        const anchor = e.target.closest('.nav-bar .nav-item');
         if (!anchor) return;
         if (e.defaultPrevented) return;
         if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-
         const href = anchor.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
-        if (anchor.target && anchor.target !== '_self') return;
-        if (anchor.dataset.noAjax !== undefined) return;
-
-        // Only handle same-origin navigation
-        const targetUrl = new URL(href, window.location.origin);
-        if (targetUrl.origin !== window.location.origin) return;
-
-        // Only intercept main content and nav bar links; allow external or form-related links to behave normally
-        if (!anchor.closest('.nav-bar') && !anchor.closest('#mainContent') && !anchor.closest('.content')) return;
-
+        if (!href) return;
         e.preventDefault();
-        navigateTo(targetUrl.pathname + targetUrl.search);
+        navigateTo(href);
     });
 
     window.addEventListener('popstate', function(e) {
