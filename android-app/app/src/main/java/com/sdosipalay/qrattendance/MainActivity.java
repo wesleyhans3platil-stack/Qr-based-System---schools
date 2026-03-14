@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String WELCOME_CHANNEL_ID = "welcome_channel";
     private static final int WELCOME_NOTIFICATION_ID = 2000;
 
-    private WebView webViewDashboard;
+    private DashboardFragment dashboardFragment;
     private WebView webViewAttendance;
     private WebView webViewSchools;
     private WebView webViewReports;
@@ -157,7 +157,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Find views
-        webViewDashboard = findViewById(R.id.webViewDashboard);
+        dashboardFragment = DashboardFragment.newInstance();
+        getSupportFragmentManager().beginTransaction()
+            .replace(R.id.fragmentContainer, dashboardFragment)
+            .commitNowAllowingStateLoss();
+
         webViewAttendance = findViewById(R.id.webViewAttendance);
         webViewSchools = findViewById(R.id.webViewSchools);
         webViewReports = findViewById(R.id.webViewReports);
@@ -167,8 +171,7 @@ public class MainActivity extends AppCompatActivity {
         retryButton = findViewById(R.id.retryButton);
         logoutOfflineBtn = findViewById(R.id.logoutOfflineBtn);
 
-        currentWebView = webViewDashboard;
-        setupWebView(webViewDashboard);
+        currentWebView = null;
         setupWebView(webViewAttendance);
         setupWebView(webViewSchools);
         setupWebView(webViewReports);
@@ -610,6 +613,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void selectTab(int itemId) {
+        if (itemId == R.id.nav_dashboard) {
+            // show native dashboard fragment
+            showFragment();
+            return;
+        }
+
+        // show the appropriate webview for other tabs
+        hideFragment();
         WebView target = getWebViewForTab(itemId);
         if (target == null) return;
 
@@ -623,6 +634,22 @@ public class MainActivity extends AppCompatActivity {
         if (url != null) {
             ensureUrlLoaded(target, url);
         }
+    }
+
+    private void showFragment() {
+        hideAllWebViews();
+        findViewById(R.id.fragmentContainer).setVisibility(View.VISIBLE);
+        currentWebView = null;
+    }
+
+    private void hideFragment() {
+        findViewById(R.id.fragmentContainer).setVisibility(View.GONE);
+    }
+
+    private void hideAllWebViews() {
+        if (webViewAttendance != null) webViewAttendance.setVisibility(View.GONE);
+        if (webViewSchools != null) webViewSchools.setVisibility(View.GONE);
+        if (webViewReports != null) webViewReports.setVisibility(View.GONE);
     }
 
     private WebView getWebViewForTab(int itemId) {
