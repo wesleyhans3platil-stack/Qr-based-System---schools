@@ -625,7 +625,7 @@ if ($view_school) {
 
     <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 
-    <script>setTimeout(() => location.reload(), 60000);</script>
+    <!-- Real-time seamless update: removed location.reload() -->
 </body>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
@@ -633,15 +633,129 @@ if ($view_school) {
         const API_URL = '../api/dashboard_data.php';
         const POLL_INTERVAL_MS = 2000;
         let lastTs = null;
+        let pollTimeout;
+        let divTrendChart = null;
+        let drillChart = null;
 
+        // Helper: update stat card
+        function setStat(selector, value) {
+            const el = document.querySelector(selector);
+            if (el) el.innerText = value;
+        }
+
+        // Helper: update table rows
+        function updateTableRows(tableSelector, rows, columns, rowRenderer) {
+            const tbody = document.querySelector(tableSelector + ' tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!rows || !rows.length) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = columns;
+                td.className = 'text-muted';
+                td.style = 'text-align:center; padding:30px;';
+                td.innerText = 'No data available';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+            rows.forEach((row, i) => {
+                tbody.appendChild(rowRenderer(row, i));
+            });
+        }
+
+        // Helper: update school cards
+        function updateSchoolCards(schools) {
+            const grid = document.querySelector('.school-cards-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            schools.forEach(s => {
+                const s_absent = Math.max(0, s.enrolled - s.present);
+                const s_pct = s.enrolled > 0 ? Math.round((s.present / s.enrolled) * 1000) / 10 : 0;
+                const pct_color = s_pct >= 90 ? '#16a34a' : (s_pct >= 75 ? '#d97706' : '#dc2626');
+                const card = document.createElement('a');
+                card.href = `sds_dashboard.php?school=${s.id}&date=${encodeURIComponent(new URLSearchParams(window.location.search).get('date') || '')}`;
+                card.style = 'text-decoration:none; color:inherit;';
+                card.innerHTML = `
+                    <div class="school-card">
+                        <div class="school-card-header">
+                            <div class="school-card-icon"><i class="fas fa-school"></i></div>
+                            <div class="school-card-name">${s.name}</div>
+                        </div>
+                        <div class="school-card-stats">
+                            <div class="school-card-stat"><div class="stat-value">${s.enrolled}</div><div class="stat-label">Students</div></div>
+                            <div class="school-card-stat"><div class="stat-value text-success">${s.present}</div><div class="stat-label">Present</div></div>
+                            <div class="school-card-stat"><div class="stat-value text-error">${s_absent}</div><div class="stat-label">Absent</div></div>
+                            <div class="school-card-stat"><div class="stat-value">${s.teachers_present}/${s.total_teachers}</div><div class="stat-label">Teachers</div></div>
+                        </div>
+                        <div class="school-card-footer">
+                            <span style="font-size:1.1rem; font-weight:800; color:${pct_color};">${s_pct}%</span>
+                            <span class="btn btn-sm btn-outline"><i class="fas fa-arrow-right"></i></span>
+                        </div>
+                        <div class="progress-bar"><div style="width:${s_pct}%; height:100%; background:#16a34a; border-radius:5px 0 0 5px;"></div><div style="width:${100 - s_pct}%; height:100%; background:#dc2626; border-radius:0 5px 5px 0;"></div></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Helper: update division trend chart
+        function updateDivTrendChart(trend) {
+            const ctx = document.getElementById('divTrendChart').getContext('2d');
+            if (divTrendChart) divTrendChart.destroy();
+            divTrendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: trend.map(d => d.date),
+                    datasets: [
+                        { label: 'Present', data: trend.map(d => d.present), backgroundColor: 'rgba(22,163,74,0.7)', borderColor: '#16a34a', borderWidth: 1, borderRadius: 6 },
+                        { label: 'Absent', data: trend.map(d => d.absent), backgroundColor: 'rgba(220,38,38,0.7)', borderColor: '#dc2626', borderWidth: 1, borderRadius: 6 }
+                    ]
+                },
+                options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{x:{grid:{display:false}},y:{beginAtZero:true, grid:{color:'#e2e8f0'}, ticks:{stepSize:1}}} }
+            });
+        }
+
+        // Main update function
         function updateDashboard(data) {
             if (!data || typeof data !== 'object') return;
             if (data.ts && data.ts === lastTs) return;
             lastTs = data.ts;
-            location.reload();
+
+            // Update stat cards
+            setStat('.stat-card.primary .stat-info h3', data.stats.total_schools);
+            setStat('.stat-card.info .stat-info h3', data.stats.total_students.toLocaleString());
+            setStat('.stat-card.success .stat-info h3', data.stats.timed_in_today.toLocaleString());
+            setStat('.stat-card.error .stat-info h3', data.stats.absent_today.toLocaleString());
+            setStat('.stat-card.warning .stat-info h3', data.stats.flag_count);
+
+            // Teacher stats
+            setStat('.stat-card[style*="--info"] .stat-info h3', data.stats.total_teachers);
+            setStat('.stat-card[style*="--success"] .stat-info h3', data.stats.teachers_in);
+            setStat('.stat-card[style*="--error"] .stat-info h3', data.stats.teachers_absent);
+            setStat('.stat-card[style*="--success"] + .stat-card .stat-info h3', data.stats.teacher_att_pct + '%');
+
+            // Update school cards
+            updateSchoolCards(data.school_breakdown);
+
+            // Update division trend chart
+            updateDivTrendChart(data.trend);
+
+            // Update 2-day absentee table
+            updateTableRows('#absentee2dayList table', data.flagged_students, 6, (abs, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td data-label="School"><strong>${abs.school_name}</strong></td>
+                    <td data-label="LRN">${abs.lrn}</td>
+                    <td data-label="Student Name">${abs.name}</td>
+                    <td data-label="Grade">${abs.grade}</td>
+                    <td data-label="Section">${abs.section}</td>
+                    <td data-label="Days Absent"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:700;background:${abs.total_absent >= 5 ? '#fee2e2' : '#fef3c7'};color:${abs.total_absent >= 5 ? '#dc2626' : '#d97706'};">${abs.total_absent} day${abs.total_absent != 1 ? 's' : ''}</span></td>
+                `;
+                return tr;
+            });
         }
 
-        let pollTimeout;
         function poll() {
             const params = new URLSearchParams(window.location.search);
             let url = API_URL + '?role=superintendent';
