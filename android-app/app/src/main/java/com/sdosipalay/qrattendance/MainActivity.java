@@ -53,6 +53,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
@@ -94,7 +95,12 @@ public class MainActivity extends AppCompatActivity {
     private static final String WELCOME_CHANNEL_ID = "welcome_channel";
     private static final int WELCOME_NOTIFICATION_ID = 2000;
 
-    private WebView webView;
+    private WebView webViewDashboard;
+    private WebView webViewAttendance;
+    private WebView webViewSchools;
+    private WebView webViewReports;
+    private WebView currentWebView;
+    private BottomNavigationView bottomNav;
     private SwipeRefreshLayout swipeRefresh;
     private View offlineView;
     private Button retryButton;
@@ -104,8 +110,8 @@ public class MainActivity extends AppCompatActivity {
     private final Runnable jsPollRunnable = new Runnable() {
         @Override
         public void run() {
-            if (webView != null) {
-                webView.post(() -> webView.evaluateJavascript("if(typeof pollData==='function'){pollData();}", null));
+            if (currentWebView != null) {
+                currentWebView.post(() -> currentWebView.evaluateJavascript("if(typeof pollData=='function'){pollData();}", null));
             }
             // Poll less often to avoid UI jank on slower devices
             jsPollHandler.postDelayed(this, 10000);
@@ -151,14 +157,23 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Find views
-        webView = findViewById(R.id.webView);
-        // progressBar removed
+        webViewDashboard = findViewById(R.id.webViewDashboard);
+        webViewAttendance = findViewById(R.id.webViewAttendance);
+        webViewSchools = findViewById(R.id.webViewSchools);
+        webViewReports = findViewById(R.id.webViewReports);
+        bottomNav = findViewById(R.id.bottomNav);
         swipeRefresh = findViewById(R.id.swipeRefresh);
         offlineView = findViewById(R.id.offlineView);
         retryButton = findViewById(R.id.retryButton);
         logoutOfflineBtn = findViewById(R.id.logoutOfflineBtn);
 
-        setupWebView();
+        currentWebView = webViewDashboard;
+        setupWebView(webViewDashboard);
+        setupWebView(webViewAttendance);
+        setupWebView(webViewSchools);
+        setupWebView(webViewReports);
+
+        setupBottomNav();
         setupSwipeRefresh();
         setupButtons();
         loadApp();
@@ -256,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
     // ═══════════════════════════════════════════════════════════
 
     @SuppressLint("SetJavaScriptEnabled")
-    private void setupWebView() {
+    private void setupWebView(WebView webView) {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -562,7 +577,9 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setColorSchemeColors(ContextCompat.getColor(this, R.color.orange_500));
         swipeRefresh.setOnRefreshListener(() -> {
             if (isNetworkAvailable()) {
-                webView.reload();
+                if (currentWebView != null) {
+                    currentWebView.reload();
+                }
             } else {
                 swipeRefresh.setRefreshing(false);
                 showOffline();
@@ -576,10 +593,74 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupButtons() {
         retryButton.setOnClickListener(v -> {
-            if (isNetworkAvailable()) { hideOffline(); webView.reload(); }
+            if (isNetworkAvailable()) { hideOffline(); if (currentWebView != null) currentWebView.reload(); }
         });
         if (logoutOfflineBtn != null) {
             logoutOfflineBtn.setOnClickListener(v -> logout());
+        }
+    }
+
+    private void setupBottomNav() {
+        bottomNav.setOnItemSelectedListener(item -> {
+            selectTab(item.getItemId());
+            return true;
+        });
+        // Default to dashboard
+        bottomNav.setSelectedItemId(R.id.nav_dashboard);
+    }
+
+    private void selectTab(int itemId) {
+        WebView target = getWebViewForTab(itemId);
+        if (target == null) return;
+
+        if (currentWebView != null && currentWebView != target) {
+            currentWebView.setVisibility(View.GONE);
+        }
+        target.setVisibility(View.VISIBLE);
+        currentWebView = target;
+
+        String url = getUrlForTab(itemId);
+        if (url != null) {
+            ensureUrlLoaded(target, url);
+        }
+    }
+
+    private WebView getWebViewForTab(int itemId) {
+        switch (itemId) {
+            case R.id.nav_attendance:
+                return webViewAttendance;
+            case R.id.nav_schools:
+                return webViewSchools;
+            case R.id.nav_reports:
+                return webViewReports;
+            case R.id.nav_dashboard:
+            default:
+                return webViewDashboard;
+        }
+    }
+
+    private String getUrlForTab(int itemId) {
+        String base = BuildConfig.BASE_URL;
+        switch (itemId) {
+            case R.id.nav_attendance:
+                return base + "Qrscanattendance.php";
+            case R.id.nav_schools:
+                return base + "admin/schools.php";
+            case R.id.nav_reports:
+                return base + "admin/reports.php";
+            case R.id.nav_dashboard:
+            default:
+                return base + "app_dashboard.php";
+        }
+    }
+
+    private void ensureUrlLoaded(WebView webView, String url) {
+        if (webView == null || url == null) return;
+        String current = webView.getUrl();
+        if (current == null || !current.startsWith(url)) {
+            webView.clearCache(true);
+            webView.clearHistory();
+            webView.loadUrl(addVersionParam(url));
         }
     }
 
@@ -593,8 +674,19 @@ public class MainActivity extends AppCompatActivity {
         String target = getIntent().getStringExtra("target_url");
         if (target != null && !target.isEmpty()) {
             pendingUrl = addVersionParam(target);
+            // If the app is opened with a specific section, navigate to that tab
+            if (target.contains("Qrscanattendance")) {
+                bottomNav.setSelectedItemId(R.id.nav_attendance);
+            } else if (target.contains("/admin/schools")) {
+                bottomNav.setSelectedItemId(R.id.nav_schools);
+            } else if (target.contains("/admin/reports")) {
+                bottomNav.setSelectedItemId(R.id.nav_reports);
+            } else {
+                bottomNav.setSelectedItemId(R.id.nav_dashboard);
+            }
         } else {
             pendingUrl = addVersionParam(baseUrl + "app_dashboard.php");
+            bottomNav.setSelectedItemId(R.id.nav_dashboard);
         }
 
         String sessionCookie = getIntent().getStringExtra("session_cookie");
@@ -605,9 +697,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (isNetworkAvailable()) {
-            webView.clearCache(true);
-            webView.clearHistory();
-            webView.loadUrl(pendingUrl);
+            if (currentWebView != null) {
+                currentWebView.clearCache(true);
+                currentWebView.clearHistory();
+                currentWebView.loadUrl(pendingUrl);
+            }
         } else {
             showOffline();
         }
@@ -643,7 +737,9 @@ public class MainActivity extends AppCompatActivity {
         if (target != null && !target.isEmpty()) {
             String versioned = addVersionParam(target);
             if (isNetworkAvailable()) {
-                webView.loadUrl(versioned);
+                if (currentWebView != null) {
+                    currentWebView.loadUrl(versioned);
+                }
                 hideOffline();
             } else {
                 // store for later
@@ -738,12 +834,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void showOffline() {
         offlineView.setVisibility(View.VISIBLE);
-        webView.setVisibility(View.GONE);
+        if (currentWebView != null) currentWebView.setVisibility(View.GONE);
     }
 
     private void hideOffline() {
         offlineView.setVisibility(View.GONE);
-        webView.setVisibility(View.VISIBLE);
+        if (currentWebView != null) currentWebView.setVisibility(View.VISIBLE);
     }
 
     private void logout() {
@@ -764,8 +860,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
+        if (currentWebView != null && currentWebView.canGoBack()) {
+            currentWebView.goBack();
         } else {
             new AlertDialog.Builder(this)
                 .setTitle("Exit App")
@@ -783,7 +879,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        webView.onResume();
+        if (currentWebView != null) currentWebView.onResume();
         CookieManager.getInstance().flush();
         startJsPolling();
     }
@@ -791,14 +887,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        webView.onPause();
+        if (currentWebView != null) currentWebView.onPause();
         CookieManager.getInstance().flush();
         stopJsPolling();
     }
 
     @Override
     protected void onDestroy() {
-        if (webView != null) webView.destroy();
+        if (webViewDashboard != null) webViewDashboard.destroy();
+        if (webViewAttendance != null) webViewAttendance.destroy();
+        if (webViewSchools != null) webViewSchools.destroy();
+        if (webViewReports != null) webViewReports.destroy();
         super.onDestroy();
     }
 }

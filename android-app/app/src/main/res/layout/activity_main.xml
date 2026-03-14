@@ -1,129 +1,169 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ═══════════════════════════════════════════════════════════
-     MODERN MAIN ACTIVITY
-     WebView with bold offline screen + gradient progress bar
-     ═══════════════════════════════════════════════════════════ -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Native bottom navigation with cached WebViews to avoid stutter during tab switching.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="false"
+    android:fitsSystemWindows="true"
     android:background="@color/white">
 
-    <!-- Pull-to-Refresh + WebView -->
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefresh"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fitsSystemWindows="true">
+        android:layout_height="match_parent">
 
-        <WebView
-            android:id="@+id/webView"
+        <!-- Pull-to-refresh wraps the active WebView container -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:overScrollMode="never"
-            android:scrollbars="none" />
+            android:fitsSystemWindows="true"
+            android:layout_marginBottom="56dp">
 
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            <FrameLayout
+                android:id="@+id/webContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
-    <!-- Top progress bar removed per request -->
+                <WebView
+                    android:id="@+id/webViewDashboard"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:overScrollMode="never"
+                    android:scrollbars="none" />
 
-    <!-- ═══ Bold Offline Screen ═══ -->
-    <ScrollView
-        android:id="@+id/offlineView"
+                <WebView
+                    android:id="@+id/webViewAttendance"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    android:visibility="gone" />
+
+                <WebView
+                    android:id="@+id/webViewSchools"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    android:visibility="gone" />
+
+                <WebView
+                    android:id="@+id/webViewReports"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <!-- Bold offline overlay -->
+        <ScrollView
+            android:id="@+id/offlineView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:background="@color/bg_primary"
+            android:visibility="gone"
+            android:fitsSystemWindows="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:paddingTop="60dp"
+                android:paddingBottom="40dp">
+
+                <FrameLayout
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:layout_marginBottom="24dp">
+
+                    <View
+                        android:layout_width="100dp"
+                        android:layout_height="100dp"
+                        android:background="@drawable/bg_logo_container"
+                        android:alpha="0.1" />
+
+                    <ImageView
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_offline"
+                        android:contentDescription="Offline"
+                        android:alpha="0.6" />
+
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Connection"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/label_primary"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="-0.02"
+                    android:layout_marginBottom="10dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Check your Wi-Fi or mobile data and make sure the server is running."
+                    android:textSize="14sp"
+                    android:textColor="@color/label_tertiary"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.5"
+                    android:maxWidth="300dp"
+                    android:layout_marginBottom="32dp" />
+
+                <Button
+                    android:id="@+id/retryButton"
+                    android:layout_width="220dp"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_btn_primary"
+                    android:text="Try Again"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:fontFamily="sans-serif-medium"
+                    android:stateListAnimator="@null"
+                    android:elevation="4dp" />
+
+                <TextView
+                    android:id="@+id/logoutOfflineBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sign Out"
+                    android:textSize="14sp"
+                    android:textColor="@color/green_600"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginTop="20dp"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNav"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:background="@color/bg_primary"
-        android:visibility="gone"
-        android:fitsSystemWindows="true">
-        <!-- hide visible scrollbars while keeping scrolling functional -->
-        
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:background="?attr/colorSurface"
+        app:itemIconTint="@color/nav_item_color_state"
+        app:itemTextColor="@color/nav_item_color_state"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp"
-        android:paddingTop="60dp"
-        android:paddingBottom="40dp">
-
-        <!-- Circular accent behind icon -->
-        <FrameLayout
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginBottom="24dp">
-
-            <View
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                android:background="@drawable/bg_logo_container"
-                android:alpha="0.1" />
-
-            <ImageView
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_offline"
-                android:contentDescription="Offline"
-                android:alpha="0.6" />
-
-        </FrameLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No Connection"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="@color/label_primary"
-            android:fontFamily="sans-serif-black"
-            android:letterSpacing="-0.02"
-            android:layout_marginBottom="10dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Check your Wi-Fi or mobile data and make sure the server is running."
-            android:textSize="14sp"
-            android:textColor="@color/label_tertiary"
-            android:fontFamily="sans-serif"
-            android:gravity="center"
-            android:lineSpacingMultiplier="1.5"
-            android:maxWidth="300dp"
-            android:layout_marginBottom="32dp" />
-
-        <!-- Retry button -->
-        <Button
-            android:id="@+id/retryButton"
-            android:layout_width="220dp"
-            android:layout_height="52dp"
-            android:background="@drawable/bg_btn_primary"
-            android:text="Try Again"
-            android:textColor="@android:color/white"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textAllCaps="false"
-            android:fontFamily="sans-serif-medium"
-            android:stateListAnimator="@null"
-            android:elevation="4dp" />
-
-        <!-- Sign out link -->
-        <TextView
-            android:id="@+id/logoutOfflineBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sign Out"
-            android:textSize="14sp"
-            android:textColor="@color/green_600"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginTop="20dp"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true" />
-
-    </LinearLayout>
-    </ScrollView>
-
-</FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
