@@ -354,6 +354,26 @@ function notifyDashboardUpdate($conn) {
     }
 }
 
+// Attempt to notify local WebSocket relay so dashboards update immediately.
+// This is non-fatal: failures are ignored so scans remain robust.
+function notifyDashboardUpdateRelay($payload = []) {
+    $relay = getenv('WS_RELAY_URL') ?: 'http://127.0.0.1:3001/broadcast';
+    $json = json_encode($payload ?: ['ts' => time()]);
+    if (!function_exists('curl_init')) return false;
+
+    $ch = curl_init($relay);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT_MS, 200);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 100);
+    // execute but don't fail the main request on relay errors
+    @curl_exec($ch);
+    @curl_close($ch);
+    return true;
+}
+
 // ══════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ══════════════════════════════════════════════

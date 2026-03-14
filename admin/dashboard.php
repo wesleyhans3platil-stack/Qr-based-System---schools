@@ -472,6 +472,38 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             });
         };
 
+        // WebSocket client: receive push notifications from local relay
+        (function setupWebSocket() {
+            const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
+            let socket;
+            let reconnectDelay = 1000;
+
+            function connect() {
+                try {
+                    socket = new WebSocket(WS_URL);
+                } catch (e) {
+                    setTimeout(connect, reconnectDelay);
+                    reconnectDelay = Math.min(30000, reconnectDelay * 1.5);
+                    return;
+                }
+
+                socket.addEventListener('open', () => { reconnectDelay = 1000; console.info('Dashboard WS connected'); });
+                socket.addEventListener('message', (ev) => {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg && (msg.type === 'dashboard:update' || msg.type === 'refresh' || msg.payload)) {
+                            // Trigger immediate poll for newest data
+                            try { poll(); } catch(e) { console.warn('poll failed', e); }
+                        }
+                    } catch (e) { /* ignore invalid messages */ }
+                });
+                socket.addEventListener('close', () => { console.info('Dashboard WS closed, reconnecting'); setTimeout(connect, reconnectDelay); reconnectDelay = Math.min(30000, reconnectDelay * 1.5); });
+                socket.addEventListener('error', () => { socket.close(); });
+            }
+
+            connect();
+        })();
+
         initFilters();
         poll();
     });
