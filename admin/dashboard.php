@@ -301,8 +301,9 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
 
 
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJ+Y2aV++4bN1x03Y+QjUPxUO9G7pGI26G7iE=" crossorigin="anonymous"></script>
     <script>
-    (function() {
+    $(function() {
         const API_URL = '../api/dashboard_data.php';
         const POLL_INTERVAL_MS = 2000; // 2 seconds
         let lastTs = null;
@@ -315,8 +316,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         })[m] || '');
 
         const setText = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value;
+            $('#' + id).text(value ?? '');
         };
 
         const buildApiUrl = () => {
@@ -330,13 +330,14 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
         };
 
         const renderSchoolBreakdown = (items) => {
-            const tbody = document.getElementById('schoolBreakdownBody');
-            if (!tbody) return;
+            const $tbody = $('#schoolBreakdownBody');
+            if (!$tbody.length) return;
             if (!Array.isArray(items) || items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No schools found.</td></tr>';
+                $tbody.html('<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No schools found.</td></tr>');
                 return;
             }
-            tbody.innerHTML = items.map(sb => {
+
+            $tbody.html(items.map(sb => {
                 const rate = Number(sb.rate) || 0;
                 const color = rate >= 90 ? '#16a34a' : (rate >= 75 ? '#d97706' : '#dc2626');
                 const enrolled = Number(sb.enrolled) || 0;
@@ -360,17 +361,17 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
     </div>
   </td>
 </tr>`;
-            }).join('');
+            }).join(''));
         };
 
         const renderFlaggedStudents = (items) => {
-            const container = document.getElementById('flaggedStudentsContainer');
-            if (!container) return;
+            const $container = $('#flaggedStudentsContainer');
+            if (!$container.length) return;
             if (!Array.isArray(items) || items.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No flags!</h3><p>All students have been attending.</p></div>';
+                $container.html('<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No flags!</h3><p>All students have been attending.</p></div>');
                 return;
             }
-            container.innerHTML = items.map(fs => `
+            $container.html(items.map(fs => `
 <div class="flag-item">
   <div>
     <div style="font-weight:700;font-size:0.9rem;">${escapeHtml(fs.name)}</div>
@@ -380,17 +381,17 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
     <span class="badge badge-info" style="font-size:0.65rem;">${escapeHtml(fs.school_code ?? '')}</span>
     <div style="font-size:0.7rem;color:var(--warning);font-weight:600;margin-top:4px;">2+ days</div>
   </div>
-</div>`).join('');
+</div>`).join(''));
         };
 
         const renderTeacherAttendance = (items) => {
-            const container = document.getElementById('teacherAttendanceContainer');
-            if (!container) return;
+            const $container = $('#teacherAttendanceContainer');
+            if (!$container.length) return;
             if (!Array.isArray(items) || items.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding:30px;"><p>No data.</p></div>';
+                $container.html('<div class="empty-state" style="padding:30px;"><p>No data.</p></div>');
                 return;
             }
-            container.innerHTML = items.map(sb => {
+            $container.html(items.map(sb => {
                 const pct = (sb.total_teachers > 0) ? Math.round((sb.teachers_present / sb.total_teachers) * 100) : '—';
                 const color = (sb.total_teachers > 0 && sb.teachers_present === sb.total_teachers) ? 'var(--success)' : 'var(--warning)';
                 return `
@@ -403,23 +404,23 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
   </div>
   <div style="font-size:1.1rem;font-weight:800;color:${color};">${pct}%</div>
 </div>`;
-            }).join('');
+            }).join(''));
         };
 
         const renderInactiveStudents = (items) => {
-            const container = document.getElementById('inactiveStudentsContainer');
-            if (!container) return;
+            const $container = $('#inactiveStudentsContainer');
+            if (!$container.length) return;
             if (!Array.isArray(items) || items.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No inactive students</h3><p>All students are currently active.</p></div>';
+                $container.html('<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success);opacity:0.3;"></i><h3 style="color:var(--success);">No inactive students</h3><p>All students are currently active.</p></div>');
                 return;
             }
-            container.innerHTML = items.map(st => `
+            $container.html(items.map(st => `
 <div class="flag-item">
   <div>
     <div style="font-weight:700;font-size:0.9rem;">${escapeHtml(st.name)}</div>
     <div style="font-size:0.75rem;color:var(--text-muted);">LRN: ${escapeHtml(st.lrn)} · ${escapeHtml(st.school_name ?? '')}</div>
   </div>
-</div>`).join('');
+</div>`).join(''));
         };
 
         const updateStats = (stats) => {
@@ -433,13 +434,16 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             setText('statInactiveStudents', stats.inactive_students_count ?? '0');
         };
 
-        async function poll() {
-            try {
-                const baseUrl = buildApiUrl();
-                const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
-                const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
-                if (!res.ok) return;
-                const data = await res.json();
+        const poll = () => {
+            const baseUrl = buildApiUrl();
+            const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+
+            $.ajax({
+                url,
+                method: 'GET',
+                dataType: 'json',
+                cache: false
+            }).done((data) => {
                 if (!data || typeof data !== 'object') return;
                 if (data.ts && data.ts === lastTs) return;
                 lastTs = data.ts;
@@ -449,20 +453,28 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                 renderFlaggedStudents(data.flagged_students);
                 renderTeacherAttendance(data.school_breakdown);
                 renderInactiveStudents(data.inactive_students);
-            } catch (err) {
-                // Silent fail: retry on next poll
-                console.warn('Dashboard polling error', err);
-            } finally {
-                isPolling = false;
-                if (pollTimeout) clearTimeout(pollTimeout);
-                pollTimeout = setTimeout(poll, POLL_INTERVAL_MS);
-            }
-        }
+            }).always(() => {
+                setTimeout(poll, POLL_INTERVAL_MS);
+            });
+        };
 
-        // Start polling after page load
+        const initFilters = () => {
+            $('#filterDate').on('change', () => {
+                const params = new URLSearchParams(window.location.search);
+                params.set('date', $('#filterDate').val());
+                window.location.search = params.toString();
+            });
+
+            $('#filterSchool').on('change', () => {
+                const params = new URLSearchParams(window.location.search);
+                params.set('school', $('#filterSchool').val());
+                window.location.search = params.toString();
+            });
+        };
+
         initFilters();
         poll();
-    })();
+    });
     </script>
 <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
