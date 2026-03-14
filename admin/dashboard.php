@@ -434,27 +434,31 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             setText('statInactiveStudents', stats.inactive_students_count ?? '0');
         };
 
+        // Accepts a dashboard data object and updates the UI
+        const updateDashboard = (data) => {
+            if (!data || typeof data !== 'object') return;
+            if (data.ts && data.ts === lastTs) return;
+            lastTs = data.ts;
+            updateStats(data.stats);
+            renderSchoolBreakdown(data.school_breakdown);
+            renderFlaggedStudents(data.flagged_students);
+            renderTeacherAttendance(data.school_breakdown);
+            renderInactiveStudents(data.inactive_students);
+        };
+
+        // Fallback polling (only used if no WebSocket message received for a while)
+        let pollTimeout;
         const poll = () => {
             const baseUrl = buildApiUrl();
             const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
-
             $.ajax({
                 url,
                 method: 'GET',
                 dataType: 'json',
                 cache: false
-            }).done((data) => {
-                if (!data || typeof data !== 'object') return;
-                if (data.ts && data.ts === lastTs) return;
-                lastTs = data.ts;
-
-                updateStats(data.stats);
-                renderSchoolBreakdown(data.school_breakdown);
-                renderFlaggedStudents(data.flagged_students);
-                renderTeacherAttendance(data.school_breakdown);
-                renderInactiveStudents(data.inactive_students);
-            }).always(() => {
-                setTimeout(poll, POLL_INTERVAL_MS);
+            }).done(updateDashboard)
+            .always(() => {
+                pollTimeout = setTimeout(poll, POLL_INTERVAL_MS);
             });
         };
 
@@ -477,6 +481,7 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
             const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
             let socket;
             let reconnectDelay = 1000;
+            let wsTimeout;
 
             function connect() {
                 try {
@@ -492,8 +497,16 @@ if ($r) { while ($row = $r->fetch_assoc()) $schools_list[] = $row; }
                     try {
                         const msg = JSON.parse(ev.data);
                         if (msg && (msg.type === 'dashboard:update' || msg.type === 'refresh' || msg.payload)) {
-                            // Trigger immediate poll for newest data
-                            try { poll(); } catch(e) { console.warn('poll failed', e); }
+                            // If full dashboard data is present, update immediately
+                            if (msg.payload && msg.payload.ts && msg.payload.stats) {
+                                updateDashboard(msg.payload);
+                                // Reset polling fallback timer
+                                if (pollTimeout) clearTimeout(pollTimeout);
+                                pollTimeout = setTimeout(poll, 20000); // fallback poll every 20s
+                            } else {
+                                // fallback: trigger poll
+                                poll();
+                            }
                         }
                     } catch (e) { /* ignore invalid messages */ }
                 });

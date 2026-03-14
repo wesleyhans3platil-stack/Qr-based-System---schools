@@ -617,4 +617,67 @@ if ($view_school) {
 
     <script>setTimeout(() => location.reload(), 60000);</script>
 </body>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(function() {
+        const API_URL = '../api/dashboard_data.php';
+        const POLL_INTERVAL_MS = 2000;
+        let lastTs = null;
+
+        function updateDashboard(data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.ts && data.ts === lastTs) return;
+            lastTs = data.ts;
+            location.reload();
+        }
+
+        let pollTimeout;
+        function poll() {
+            const params = new URLSearchParams(window.location.search);
+            let url = API_URL + '?role=asst_superintendent';
+            if (params.get('date')) url += '&date=' + encodeURIComponent(params.get('date'));
+            if (params.get('school')) url += '&school=' + encodeURIComponent(params.get('school'));
+            url += '&_=' + Date.now();
+            $.ajax({ url, method: 'GET', dataType: 'json', cache: false })
+                .done(updateDashboard)
+                .always(() => { pollTimeout = setTimeout(poll, POLL_INTERVAL_MS); });
+        }
+
+        (function setupWebSocket() {
+            const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
+            let socket;
+            let reconnectDelay = 1000;
+            function connect() {
+                try {
+                    socket = new WebSocket(WS_URL);
+                } catch (e) {
+                    setTimeout(connect, reconnectDelay);
+                    reconnectDelay = Math.min(30000, reconnectDelay * 1.5);
+                    return;
+                }
+                socket.addEventListener('open', () => { reconnectDelay = 1000; });
+                socket.addEventListener('message', (ev) => {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg && (msg.type === 'dashboard:update' || msg.type === 'refresh' || msg.payload)) {
+                            if (msg.payload && msg.payload.ts) {
+                                updateDashboard(msg.payload);
+                                if (pollTimeout) clearTimeout(pollTimeout);
+                                pollTimeout = setTimeout(poll, 20000);
+                            } else {
+                                poll();
+                            }
+                        }
+                    } catch (e) {}
+                });
+                socket.addEventListener('close', () => { setTimeout(connect, reconnectDelay); reconnectDelay = Math.min(30000, reconnectDelay * 1.5); });
+                socket.addEventListener('error', () => { socket.close(); });
+            }
+            connect();
+        })();
+
+        poll();
+    });
+    </script>
+</body>
 </html>

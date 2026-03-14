@@ -1,3 +1,18 @@
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(function() {
+    const API_URL = '../api/dashboard_data.php';
+    const POLL_INTERVAL_MS = 2000;
+    let lastTs = null;
+        // Helper to update dashboard UI (reload page for now)
+        function updateDashboard(data) {
+            if (!data || typeof data !== 'object') return;
+    // Fallback polling
+    let pollTimeout;
+    function poll() {
+        // WebSocket client for real-time push
+        (function setupWebSocket() {
+            const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
 <?php
 session_start();
 require_once '../config/database.php';
@@ -430,5 +445,11 @@ for ($count = 0; $count < 7; $count++) {
     setTimeout(() => location.reload(), 60000);
     </script>
 <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
+            connect();
+        })();
+
+        poll();
+    });
+    </script>
 </body>
 </html>

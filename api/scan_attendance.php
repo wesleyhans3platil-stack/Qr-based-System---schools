@@ -342,6 +342,27 @@ if ($action === 'TIME_OUT') {
 
 // Notify connected dashboards that data changed (SSE clients will refresh automatically)
 notifyDashboardUpdate($conn);
+// Also notify WebSocket relay (non-blocking) so connected dashboards receive push
+try {
+    // Fetch the latest dashboard data (as JSON)
+    $dashboardUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . '/../api/dashboard_data.php';
+    $cookie = $_SERVER['HTTP_COOKIE'] ?? '';
+    $opts = [
+        'http' => [
+            'method' => 'GET',
+            'header' => "Cookie: $cookie\r\n"
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $dashboardJson = @file_get_contents($dashboardUrl, false, $context);
+    if ($dashboardJson) {
+        notifyDashboardUpdateRelay(json_decode($dashboardJson, true));
+    } else {
+        notifyDashboardUpdateRelay(['ts' => time(), 'school_id' => $school_id ?? null, 'action' => $action ?? null]);
+    }
+} catch (\Throwable $e) {
+    // ignore
+}
 
 echo json_encode($response);
 ob_end_flush();
