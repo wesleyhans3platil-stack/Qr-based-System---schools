@@ -5,7 +5,7 @@
  */
 (function() {
     let lastHash = null;
-    let pollInterval = 5000; // 5 seconds
+    let pollInterval = 10000; // 10 seconds
     let failCount = 0;
     let pollTimer = null;
     let isPaused = false;
@@ -19,7 +19,8 @@
     const SHOW_LIVE_INDICATOR = false;
 
     // Pages that should NOT auto-refresh (forms, settings, edit pages)
-    const noRefreshPages = ['settings', 'register_user', 'bulk_import', 'print_qr', 'shs_students'];
+    // Dashboard pages have their own AJAX polling — don't do full-page refresh for them
+    const noRefreshPages = ['settings', 'register_user', 'bulk_import', 'print_qr', 'shs_students', 'dashboard', 'sds_dashboard', 'asds_dashboard', 'principal_dashboard'];
     const currentPath = window.location.pathname;
     const shouldRefresh = !noRefreshPages.some(p => currentPath.includes(p));
 
@@ -134,7 +135,7 @@
             .then(r => r.json())
             .then(data => {
                 failCount = 0;
-                pollInterval = 5000; // Reset to 5s on success
+                pollInterval = 10000; // Reset to 10s on success
 
                 if (data.error) return;
 
