@@ -110,15 +110,15 @@ class DBSessionHandler implements SessionHandlerInterface {
         $this->ttl = $ttl;
     }
 
-    public function open($savePath, $sessionName) {
+    public function open(string $savePath, string $sessionName): bool {
         return true;
     }
 
-    public function close() {
+    public function close(): bool {
         return true;
     }
 
-    public function read($id) {
+    public function read(string $id): string|false {
         $stmt = $this->conn->prepare('SELECT data FROM sessions WHERE id = ? LIMIT 1');
         $stmt->bind_param('s', $id);
         $stmt->execute();
@@ -129,32 +129,40 @@ class DBSessionHandler implements SessionHandlerInterface {
         return '';
     }
 
-    public function write($id, $data) {
+    public function write(string $id, string $data): bool {
         $time = time();
         $stmt = $this->conn->prepare('REPLACE INTO sessions (id, data, last_access) VALUES (?, ?, ?)');
         $stmt->bind_param('ssi', $id, $data, $time);
         return $stmt->execute();
     }
 
-    public function destroy($id) {
+    public function destroy(string $id): bool {
         $stmt = $this->conn->prepare('DELETE FROM sessions WHERE id = ?');
         $stmt->bind_param('s', $id);
         return $stmt->execute();
     }
 
-    public function gc($maxlifetime) {
+    public function gc(int $maxlifetime): int|false {
         $old = time() - $maxlifetime;
         $stmt = $this->conn->prepare('DELETE FROM sessions WHERE last_access < ?');
         $stmt->bind_param('i', $old);
-        return $stmt->execute();
+        if ($stmt->execute()) {
+            return $stmt->affected_rows;
+        }
+        return false;
     }
 }
 
 $handler = new DBSessionHandler($conn, 86400);
-session_set_save_handler($handler, true);
+if (!headers_sent()) {
+    session_set_save_handler($handler, true);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+} else {
+    // If headers already sent, sessions can't be started here.
+    // This typically means output occurred before including this file.
 }
 
 function getDBConnection() {
