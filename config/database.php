@@ -87,14 +87,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 // Store connection globally
 $GLOBALS['db_conn'] = $conn;
 
-// ══════════════════════════════════════════════════════════════════
-// DATABASE-BACKED SESSIONS
-// Stores sessions in MySQL so they survive Railway deploys.
-// ══════════════════════════════════════════════════════════════════
-require_once __DIR__ . '/db_sessions.php';
-ensureSessionTable($conn);
-
-// Set cookie lifetime to 24 hours (must be before session_start)
+// ── Session: simple file-based, 24-hour lifetime ──
 ini_set('session.gc_maxlifetime', 86400);
 ini_set('session.cookie_lifetime', 86400);
 ini_set('session.cookie_path', '/');
@@ -102,21 +95,7 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
 
 if (session_status() === PHP_SESSION_NONE) {
-    // No session yet — start with DB handler
-    session_set_save_handler(new DbSessionHandler($conn), true);
     session_start();
-} elseif (session_status() === PHP_SESSION_ACTIVE) {
-    // Session already started (by a file that still calls session_start())
-    // Migrate it to DB backend to keep data safe
-    $oldData = $_SESSION;
-    $oldId = session_id();
-    session_write_close();
-    session_set_save_handler(new DbSessionHandler($conn), true);
-    session_id($oldId);
-    session_start();
-    foreach ($oldData as $k => $v) {
-        $_SESSION[$k] = $v;
-    }
 }
 
 function getDBConnection() {
