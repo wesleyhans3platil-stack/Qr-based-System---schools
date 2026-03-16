@@ -1,18 +1,3 @@
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-    $(function() {
-    const API_URL = '../api/dashboard_data.php';
-    const POLL_INTERVAL_MS = 2000;
-    let lastTs = null;
-        // Helper to update dashboard UI (reload page for now)
-        function updateDashboard(data) {
-            if (!data || typeof data !== 'object') return;
-    // Fallback polling
-    let pollTimeout;
-    function poll() {
-        // WebSocket client for real-time push
-        (function setupWebSocket() {
-            const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
 <?php
 session_start();
 require_once '../config/database.php';
@@ -179,115 +164,19 @@ for ($count = 0; $count < 7; $count++) {
             <div class="page-header">
                 <h1><i class="fas fa-school" style="color:var(--primary); margin-right:8px;"></i> <?= htmlspecialchars($school_name) ?></h1>
                 <p>Principal Dashboard — School Attendance Overview</p>
-            <script>
-            $(function() {
-                const API_URL = '../api/dashboard_data.php';
-                const POLL_INTERVAL_MS = 2000;
-                let lastTs = null;
+            </div>
+            <div class="top-bar-right">
+                <div class="date-display"><i class="fas fa-calendar-alt"></i> <?= formatDate($filter_date) ?></div>
+                <form method="GET"><input type="date" name="date" value="<?= $filter_date ?>" class="form-control" style="width:180px;" onchange="this.form.submit()"></form>
+            </div>
+        </div>
 
-                // Helper functions to update DOM
-                function setText(sel, value) {
-                    $(sel).text(value ?? '');
-                }
-                function updateStats(stats) {
-                    setText('.stat-card.primary h3', stats.total_students);
-                    setText('.stat-card.success h3', stats.students_present);
-                    setText('.stat-card.error h3', stats.students_absent);
-                    setText('.stat-card.warning:eq(0) h3', stats.students_late);
-                    setText('.stat-card.info h3', stats.teachers_present + '/' + stats.total_teachers);
-                    setText('.stat-card.warning:eq(1) h3', stats.inactive_students);
-                    setText('.stat-card[style*="border-left"] h3', stats.att_pct + '%');
-                }
-                function renderSectionBreakdown(sections) {
-                    const $tbody = $('.card .table-wrapper tbody').first();
-                    if (!Array.isArray(sections) || sections.length === 0) {
-                        $tbody.html('<tr><td colspan="7" class="text-muted" style="text-align:center; padding:30px;">No sections found</td></tr>');
-                        return;
-                    }
-                    $tbody.html(sections.map(sec => {
-                        const sec_absent = Math.max(0, sec.total - sec.present);
-                        const sec_rate = sec.total > 0 ? Math.min(100, Math.round((sec.present / sec.total) * 100)) : 0;
-                        const color = sec_rate >= 90 ? '#16a34a' : (sec_rate >= 75 ? '#d97706' : '#dc2626');
-                        return `<tr><td><strong>${sec.grade_name}</strong></td><td>${sec.section_name}</td><td>${sec.total}</td><td><span class="text-success fw-600">${sec.present}</span></td><td><span class="text-error fw-600">${sec_absent}</span></td><td><span class="text-warning fw-600">${sec.late_count}</span></td><td><div style="display:flex;align-items:center;gap:8px;"><div class="progress-bar" style="width:80px;"><div style="width:${sec_rate}%;height:100%;background:#16a34a;border-radius:5px 0 0 5px;"></div><div style="width:${100-sec_rate}%;height:100%;background:#dc2626;border-radius:0 5px 5px 0;"></div></div><span class="fw-600" style="font-size:0.8rem;color:${color};">${sec_rate}%</span></div></td></tr>`;
-                    }).join(''));
-                }
-                function renderConsecutiveAbsentees(absentees) {
-                    const $container = $('.card .card-title:contains("2-Day Consecutive Absentees")').parent();
-                    if (!Array.isArray(absentees) || absentees.length === 0) {
-                        $container.find('.empty-state').remove();
-                        $container.find('> div').not('.card-title').remove();
-                        $container.append('<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success); font-size:2rem;"></i><h3 style="color:var(--success);">All Clear</h3><p>No students with 2 consecutive days absent.</p></div>');
-                        return;
-                    }
-                    $container.find('.empty-state').remove();
-                    $container.find('> div').not('.card-title').remove();
-                    $container.append('<div style="max-height:350px; overflow-y:auto;">' + absentees.map(abs => `<div class="absence-flag"><div class="flag-icon"><i class="fas fa-exclamation-circle"></i></div><div class="flag-info"><strong>${abs.name}</strong><span>LRN: ${abs.lrn} &bull; ${abs.grade} — ${abs.section}</span></div></div>`).join('') + '</div>');
-                }
-                function renderScanLogs(logs) {
-                    const $tbody = $('.card .card-title:contains("Recent QR Scan Logs")').parent().find('tbody');
-                    if (!Array.isArray(logs) || logs.length === 0) {
-                        $tbody.html('<tr><td colspan="5" class="text-muted" style="text-align:center;">No scans yet</td></tr>');
-                        return;
-                    }
-                    $tbody.html(logs.map(log => `<tr><td><strong style="font-size:0.85rem;">${log.person_name ?? 'Unknown'}</strong><br><span style="font-size:0.72rem;color:var(--text-muted);">${log.person_code ?? ''}</span></td><td><span class="badge ${log.person_type === 'student' ? 'badge-primary' : 'badge-info'}">${log.person_type.charAt(0).toUpperCase() + log.person_type.slice(1)}</span></td><td style="font-size:0.85rem;">${log.time_in ?? ''}</td><td style="font-size:0.85rem;">${log.time_out ?? ''}</td><td><span class="badge ${log.status === 'present' ? 'badge-success' : (log.status === 'late' ? 'badge-warning' : 'badge-error')}">${log.status.charAt(0).toUpperCase() + log.status.slice(1)}</span></td></tr>`).join(''));
-                }
-                function updateDashboard(data) {
-                    if (!data || typeof data !== 'object') return;
-                    if (data.ts && data.ts === lastTs) return;
-                    lastTs = data.ts;
-                    if (data.stats) updateStats(data.stats);
-                    if (data.section_data) renderSectionBreakdown(data.section_data);
-                    if (data.consecutive_absent) renderConsecutiveAbsentees(data.consecutive_absent);
-                    if (data.scan_logs) renderScanLogs(data.scan_logs);
-                }
-
-                let pollTimeout;
-                function poll() {
-                    const params = new URLSearchParams(window.location.search);
-                    let url = API_URL + '?role=principal';
-                    if (params.get('date')) url += '&date=' + encodeURIComponent(params.get('date'));
-                    if (params.get('school')) url += '&school=' + encodeURIComponent(params.get('school'));
-                    url += '&_=' + Date.now();
-                    $.ajax({ url, method: 'GET', dataType: 'json', cache: false })
-                        .done(updateDashboard)
-                        .always(() => { pollTimeout = setTimeout(poll, POLL_INTERVAL_MS); });
-                }
-
-                (function setupWebSocket() {
-                    const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
-                    let socket;
-                    let reconnectDelay = 1000;
-                    function connect() {
-                        try {
-                            socket = new WebSocket(WS_URL);
-                        } catch (e) {
-                            setTimeout(connect, reconnectDelay);
-                            reconnectDelay = Math.min(30000, reconnectDelay * 1.5);
-                            return;
-                        }
-                        socket.addEventListener('open', () => { reconnectDelay = 1000; });
-                        socket.addEventListener('message', (ev) => {
-                            try {
-                                const msg = JSON.parse(ev.data);
-                                if (msg && (msg.type === 'dashboard:update' || msg.type === 'refresh' || msg.payload)) {
-                                    if (msg.payload && msg.payload.ts) {
-                                        updateDashboard(msg.payload);
-                                        if (pollTimeout) clearTimeout(pollTimeout);
-                                        pollTimeout = setTimeout(poll, 20000);
-                                    } else {
-                                        poll();
-                                    }
-                                }
-                            } catch (e) {}
-                        });
-                        socket.addEventListener('close', () => { setTimeout(connect, reconnectDelay); reconnectDelay = Math.min(30000, reconnectDelay * 1.5); });
-                        socket.addEventListener('error', () => { socket.close(); });
-                    }
-                    connect();
-                })();
-
-                poll();
-            });
+        <?php if (!$is_school_day): ?>
+        <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:14px;padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+            <i class="fas fa-calendar-xmark" style="font-size:1.8rem;color:#d97706;"></i>
+            <div>
+                <strong style="font-size:1rem;color:#92400e;">No Classes Today</strong>
+                <p style="margin:2px 0 0;font-size:0.85rem;color:#a16207;"><?= htmlspecialchars($non_school_reason ?? 'Non-school day') ?> — Attendance data shown is for reference only.</p>
             </div>
         </div>
         <?php endif; ?>
@@ -297,49 +186,49 @@ for ($count = 0; $count < 7; $count++) {
             <div class="stat-card primary">
                 <div class="stat-icon primary"><i class="fas fa-user-graduate"></i></div>
                 <div class="stat-info">
-                    <h3><?= $total_students ?></h3>
+                    <h3 id="statTotalStudents"><?= $total_students ?></h3>
                     <span>Total Students</span>
                 </div>
             </div>
             <div class="stat-card success">
                 <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
                 <div class="stat-info">
-                    <h3><?= $students_present ?></h3>
+                    <h3 id="statStudentsPresent"><?= $students_present ?></h3>
                     <span>Present Today</span>
                 </div>
             </div>
             <div class="stat-card error">
                 <div class="stat-icon error"><i class="fas fa-times-circle"></i></div>
                 <div class="stat-info">
-                    <h3><?= $students_absent ?></h3>
+                    <h3 id="statStudentsAbsent"><?= $students_absent ?></h3>
                     <span>Absent Today</span>
                 </div>
             </div>
             <div class="stat-card warning">
                 <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
                 <div class="stat-info">
-                    <h3><?= $students_late ?></h3>
+                    <h3 id="statStudentsLate"><?= $students_late ?></h3>
                     <span>Late Today</span>
                 </div>
             </div>
             <div class="stat-card info">
                 <div class="stat-icon info"><i class="fas fa-chalkboard-teacher"></i></div>
                 <div class="stat-info">
-                    <h3><?= $teachers_present ?>/<?= $total_teachers ?></h3>
+                    <h3 id="statTeachersPresent"><?= $teachers_present ?>/<?= $total_teachers ?></h3>
                     <span>Teachers Present</span>
                 </div>
             </div>
             <div class="stat-card warning">
                 <div class="stat-icon warning"><i class="fas fa-user-slash"></i></div>
                 <div class="stat-info">
-                    <h3><?= max(0, $total_students - $active_students) ?></h3>
+                    <h3 id="statInactiveStudents"><?= max(0, $total_students - $active_students) ?></h3>
                     <span>Inactive Students</span>
                 </div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--primary);">
                 <div class="stat-icon primary"><i class="fas fa-percentage"></i></div>
                 <div class="stat-info">
-                    <h3><?= $att_pct ?>%</h3>
+                    <h3 id="statAttPct"><?= $att_pct ?>%</h3>
                     <span>Attendance Rate</span>
                 </div>
             </div>
@@ -364,8 +253,8 @@ for ($count = 0; $count < 7; $count++) {
                     </div>
                 </div>
                 <div style="text-align:center; margin-top:16px;">
-                    <span class="badge badge-success"><i class="fas fa-circle" style="font-size:0.5rem;"></i> Present: <?= $teachers_present ?></span>
-                    <span class="badge badge-error" style="margin-left:8px;"><i class="fas fa-circle" style="font-size:0.5rem;"></i> Absent: <?= $teachers_absent ?></span>
+                    <span class="badge badge-success"><i class="fas fa-circle" style="font-size:0.5rem;"></i> Present: <span id="teacherPresentBadge"><?= $teachers_present ?></span></span>
+                    <span class="badge badge-error" style="margin-left:8px;"><i class="fas fa-circle" style="font-size:0.5rem;"></i> Absent: <span id="teacherAbsentBadge"><?= $teachers_absent ?></span></span>
                 </div>
             </div>
         </div>
@@ -386,7 +275,7 @@ for ($count = 0; $count < 7; $count++) {
                             <th>Rate</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="sectionBreakdownBody">
                         <?php if (empty($section_data)): ?>
                         <tr><td colspan="7" class="text-muted" style="text-align:center; padding:30px;">No sections found</td></tr>
                         <?php else: foreach ($section_data as $sec):
@@ -419,7 +308,8 @@ for ($count = 0; $count < 7; $count++) {
         <div class="grid-2">
             <!-- Consecutive Absentees -->
             <div class="card">
-                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--error);"></i> 2-Day Consecutive Absentees <span class="badge badge-error" style="margin-left:auto;"><?= count($consecutive_absent) ?></span></div>
+                <div class="card-title"><i class="fas fa-exclamation-triangle" style="color:var(--error);"></i> 2-Day Consecutive Absentees <span id="absenteeBadge" class="badge badge-error" style="margin-left:auto;"><?= count($consecutive_absent) ?></span></div>
+                <div id="consecutiveAbsentContainer">
                 <?php if (empty($consecutive_absent)): ?>
                     <div class="empty-state" style="padding:30px;">
                         <i class="fas fa-check-circle" style="color:var(--success); font-size:2rem;"></i>
@@ -439,6 +329,7 @@ for ($count = 0; $count < 7; $count++) {
                     <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                </div>
             </div>
 
             <!-- Recent Scan Logs -->
@@ -455,7 +346,7 @@ for ($count = 0; $count < 7; $count++) {
                                 <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="scanLogsBody">
                             <?php if (empty($scan_logs)): ?>
                             <tr><td colspan="5" class="text-muted" style="text-align:center;">No scans yet</td></tr>
                             <?php else: foreach ($scan_logs as $log): ?>
@@ -481,10 +372,10 @@ for ($count = 0; $count < 7; $count++) {
         </div>
     </div>
 
+    <!-- Charts Init -->
     <script>
     // Weekly trend chart
-    const trendCtx = document.getElementById('trendChart').getContext('2d');
-    new Chart(trendCtx, {
+    let trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
         type: 'bar',
         data: {
             labels: <?= json_encode(array_column($trend_data, 'date')) ?>,
@@ -517,8 +408,7 @@ for ($count = 0; $count < 7; $count++) {
     });
 
     // Teacher doughnut
-    const teacherCtx = document.getElementById('teacherChart').getContext('2d');
-    new Chart(teacherCtx, {
+    let teacherChart = new Chart(document.getElementById('teacherChart').getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: ['Present', 'Absent'],
@@ -535,16 +425,152 @@ for ($count = 0; $count < 7; $count++) {
             plugins: { legend: { display: false } }
         }
     });
-
-    // Auto-refresh every 60 seconds
-    setTimeout(() => location.reload(), 60000);
     </script>
-<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
+
+    <!-- Real-time Polling -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(function() {
+        const API_URL = '../api/dashboard_data.php';
+        const POLL_INTERVAL_MS = 2000;
+        let lastTs = null;
+
+        const escapeHtml = (str) => String(str ?? '').replace(/[&<>"]/g, (m) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+        })[m] || '');
+
+        function updateStats(stats) {
+            if (!stats) return;
+            $('#statTotalStudents').text(stats.total_students ?? '0');
+            $('#statStudentsPresent').text(stats.students_present ?? stats.timed_in_today ?? '0');
+            $('#statStudentsAbsent').text(stats.students_absent ?? stats.absent_today ?? '0');
+            $('#statStudentsLate').text(stats.students_late ?? '0');
+            $('#statTeachersPresent').text((stats.teachers_present ?? stats.teachers_in ?? 0) + '/' + (stats.total_teachers ?? 0));
+            $('#statInactiveStudents').text(stats.inactive_students ?? '0');
+            $('#statAttPct').text((stats.att_pct ?? stats.attendance_rate ?? 0) + '%');
+
+            // Update chart badges
+            const tp = stats.teachers_present ?? stats.teachers_in ?? 0;
+            const ta = stats.teachers_absent ?? Math.max(0, (stats.total_teachers ?? 0) - tp);
+            $('#teacherPresentBadge').text(tp);
+            $('#teacherAbsentBadge').text(ta);
+
+            // Update teacher doughnut chart
+            if (typeof teacherChart !== 'undefined') {
+                teacherChart.data.datasets[0].data = [tp, ta];
+                teacherChart.update('none');
+            }
+        }
+
+        function renderSectionBreakdown(sections) {
+            const $tbody = $('#sectionBreakdownBody');
+            if (!$tbody.length) return;
+            if (!Array.isArray(sections) || sections.length === 0) {
+                $tbody.html('<tr><td colspan="7" class="text-muted" style="text-align:center; padding:30px;">No sections found</td></tr>');
+                return;
+            }
+            $tbody.html(sections.map(sec => {
+                const absent = Math.max(0, sec.total - sec.present);
+                const rate = sec.total > 0 ? Math.min(100, Math.round((sec.present / sec.total) * 100)) : 0;
+                const color = rate >= 90 ? '#16a34a' : (rate >= 75 ? '#d97706' : '#dc2626');
+                return `<tr>
+                    <td><strong>${escapeHtml(sec.grade_name)}</strong></td>
+                    <td>${escapeHtml(sec.section_name)}</td>
+                    <td>${sec.total}</td>
+                    <td><span class="text-success fw-600">${sec.present}</span></td>
+                    <td><span class="text-error fw-600">${absent}</span></td>
+                    <td><span class="text-warning fw-600">${sec.late_count}</span></td>
+                    <td><div style="display:flex;align-items:center;gap:8px;"><div class="progress-bar" style="width:80px;"><div style="width:${rate}%;height:100%;background:#16a34a;border-radius:5px 0 0 5px;"></div><div style="width:${100-rate}%;height:100%;background:#dc2626;border-radius:0 5px 5px 0;"></div></div><span class="fw-600" style="font-size:0.8rem;color:${color};">${rate}%</span></div></td>
+                </tr>`;
+            }).join(''));
+        }
+
+        function renderConsecutiveAbsentees(absentees) {
+            const $container = $('#consecutiveAbsentContainer');
+            if (!$container.length) return;
+            if (!Array.isArray(absentees) || absentees.length === 0) {
+                $container.html('<div class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--success); font-size:2rem;"></i><h3 style="color:var(--success);">All Clear</h3><p>No students with 2 consecutive days absent.</p></div>');
+                $('#absenteeBadge').text('0');
+                return;
+            }
+            $('#absenteeBadge').text(absentees.length);
+            $container.html('<div style="max-height:350px; overflow-y:auto;">' + absentees.map(abs => `<div class="absence-flag"><div class="flag-icon"><i class="fas fa-exclamation-circle"></i></div><div class="flag-info"><strong>${escapeHtml(abs.name)}</strong><span>LRN: ${escapeHtml(abs.lrn)} &bull; ${escapeHtml(abs.grade)} — ${escapeHtml(abs.section)}</span></div></div>`).join('') + '</div>');
+        }
+
+        function renderScanLogs(logs) {
+            const $tbody = $('#scanLogsBody');
+            if (!$tbody.length) return;
+            if (!Array.isArray(logs) || logs.length === 0) {
+                $tbody.html('<tr><td colspan="5" class="text-muted" style="text-align:center;">No scans yet</td></tr>');
+                return;
+            }
+            $tbody.html(logs.map(log => `<tr>
+                <td><strong style="font-size:0.85rem;">${escapeHtml(log.person_name ?? 'Unknown')}</strong><br><span style="font-size:0.72rem;color:var(--text-muted);">${escapeHtml(log.person_code ?? '')}</span></td>
+                <td><span class="badge ${log.person_type === 'student' ? 'badge-primary' : 'badge-info'}">${(log.person_type || '').charAt(0).toUpperCase() + (log.person_type || '').slice(1)}</span></td>
+                <td style="font-size:0.85rem;">${log.time_in ?? ''}</td>
+                <td style="font-size:0.85rem;">${log.time_out ?? ''}</td>
+                <td><span class="badge ${log.status === 'present' ? 'badge-success' : (log.status === 'late' ? 'badge-warning' : 'badge-error')}">${(log.status || '').charAt(0).toUpperCase() + (log.status || '').slice(1)}</span></td>
+            </tr>`).join(''));
+        }
+
+        function updateDashboard(data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.ts && data.ts === lastTs) return;
+            lastTs = data.ts;
+            if (data.stats) updateStats(data.stats);
+            if (data.section_data) renderSectionBreakdown(data.section_data);
+            if (data.consecutive_absent) renderConsecutiveAbsentees(data.consecutive_absent);
+            if (data.scan_logs) renderScanLogs(data.scan_logs);
+        }
+
+        let pollTimeout;
+        function poll() {
+            const params = new URLSearchParams(window.location.search);
+            let url = API_URL + '?role=principal';
+            if (params.get('date')) url += '&date=' + encodeURIComponent(params.get('date'));
+            url += '&_=' + Date.now();
+            $.ajax({ url, method: 'GET', dataType: 'json', cache: false })
+                .done(updateDashboard)
+                .always(() => { pollTimeout = setTimeout(poll, POLL_INTERVAL_MS); });
+        }
+
+        // WebSocket for instant updates (falls back to polling)
+        (function setupWebSocket() {
+            const WS_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://127.0.0.1:3001' : 'ws://' + window.location.hostname + ':3001';
+            let socket;
+            let reconnectDelay = 1000;
+            function connect() {
+                try {
+                    socket = new WebSocket(WS_URL);
+                } catch (e) {
+                    setTimeout(connect, reconnectDelay);
+                    reconnectDelay = Math.min(30000, reconnectDelay * 1.5);
+                    return;
+                }
+                socket.addEventListener('open', () => { reconnectDelay = 1000; });
+                socket.addEventListener('message', (ev) => {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg && (msg.type === 'dashboard:update' || msg.type === 'refresh' || msg.payload)) {
+                            if (msg.payload && msg.payload.ts) {
+                                updateDashboard(msg.payload);
+                                if (pollTimeout) clearTimeout(pollTimeout);
+                                pollTimeout = setTimeout(poll, 20000);
+                            } else {
+                                poll();
+                            }
+                        }
+                    } catch (e) {}
+                });
+                socket.addEventListener('close', () => { setTimeout(connect, reconnectDelay); reconnectDelay = Math.min(30000, reconnectDelay * 1.5); });
+                socket.addEventListener('error', () => { socket.close(); });
+            }
             connect();
         })();
 
         poll();
     });
     </script>
+<?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 </body>
 </html>

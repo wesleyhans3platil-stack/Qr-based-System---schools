@@ -615,8 +615,7 @@ if ($view_school) {
 
     <?php include __DIR__ . '/includes/mobile_nav.php'; ?>
 
-    <!-- Real-time seamless update: removed location.reload() -->
-</body>
+    <!-- Real-time polling -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     $(function() {
@@ -691,7 +690,9 @@ if ($view_school) {
 
         // Helper: update division trend chart
         function updateDivTrendChart(trend) {
-            const ctx = document.getElementById('divTrendChart').getContext('2d');
+            const el = document.getElementById('divTrendChart');
+            if (!el) return;
+            const ctx = el.getContext('2d');
             if (divTrendChart) divTrendChart.destroy();
             divTrendChart = new Chart(ctx, {
                 type: 'bar',
@@ -729,7 +730,7 @@ if ($view_school) {
             updateSchoolCards(data.school_breakdown);
 
             // Update division trend chart
-            updateDivTrendChart(data.trend);
+            if (data.trend) updateDivTrendChart(data.trend);
 
             // Update 2-day absentee table
             updateTableRows('#absentee2dayList table', data.flagged_students, 6, (abs, i) => {

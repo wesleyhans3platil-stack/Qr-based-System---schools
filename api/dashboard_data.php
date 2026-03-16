@@ -229,6 +229,55 @@ for ($count = 0; $count < 7; $count++) {
     $td = date('Y-m-d', strtotime($td . ' -1 day'));
 }
 
+// ─── Principal-specific data ───
+$principal_section_data = [];
+$principal_scan_logs = [];
+$principal_consecutive_absent = [];
+$students_late = 0;
+
+if ($admin_role === 'principal' && $admin_school_id) {
+    $sid = (int)$admin_school_id;
+
+    // Students late today
+    $r = $conn->query("SELECT COUNT(DISTINCT person_id) as cnt FROM attendance WHERE person_type='student' AND date='$filter_date' AND status='late' AND school_id = $sid");
+    if ($r) $students_late = (int)$r->fetch_assoc()['cnt'];
+
+    // Section breakdown
+    $sec_sql = "SELECT sec.id, sec.name as section_name, gl.name as grade_name,
+        (SELECT COUNT(*) FROM students st WHERE st.section_id = sec.id AND st.status='active') as total,
+        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a JOIN students st ON a.person_id = st.id WHERE st.section_id = sec.id AND a.person_type='student' AND a.date='$filter_date' AND a.time_in IS NOT NULL) as present,
+        (SELECT COUNT(DISTINCT a.person_id) FROM attendance a JOIN students st ON a.person_id = st.id WHERE st.section_id = sec.id AND a.person_type='student' AND a.date='$filter_date' AND a.status='late') as late_count
+        FROM sections sec
+        JOIN grade_levels gl ON sec.grade_level_id = gl.id
+        WHERE sec.school_id = $sid AND sec.status='active'
+        ORDER BY gl.id, sec.name";
+    $r = $conn->query($sec_sql);
+    if ($r) while ($row = $r->fetch_assoc()) $principal_section_data[] = $row;
+
+    // Recent scan logs (last 20)
+    $log_sql = "SELECT a.*, 
+        CASE WHEN a.person_type='student' THEN (SELECT name FROM students WHERE id=a.person_id) ELSE (SELECT name FROM teachers WHERE id=a.person_id) END as person_name,
+        CASE WHEN a.person_type='student' THEN (SELECT lrn FROM students WHERE id=a.person_id) ELSE (SELECT employee_id FROM teachers WHERE id=a.person_id) END as person_code
+        FROM attendance a
+        WHERE a.date='$filter_date' AND a.school_id = $sid
+        ORDER BY a.created_at DESC LIMIT 20";
+    $r = $conn->query($log_sql);
+    if ($r) while ($row = $r->fetch_assoc()) $principal_scan_logs[] = $row;
+
+    // 2-day consecutive absentees
+    $abs_sql = "SELECT s.id, s.lrn, s.name, gl.name as grade, sec.name as section
+        FROM students s
+        JOIN grade_levels gl ON s.grade_level_id = gl.id
+        JOIN sections sec ON s.section_id = sec.id
+        WHERE s.status='active' AND s.school_id = $sid
+        AND DATE(COALESCE(s.active_from, s.created_at)) < '$filter_date'
+        AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$filter_date' AND time_in IS NOT NULL)
+        AND s.id NOT IN (SELECT DISTINCT person_id FROM attendance WHERE person_type='student' AND date='$yesterday' AND time_in IS NOT NULL)
+        ORDER BY gl.name, sec.name, s.name LIMIT 100";
+    $r = $conn->query($abs_sql);
+    if ($r) while ($row = $r->fetch_assoc()) $principal_consecutive_absent[] = $row;
+}
+
 $payload = [
     'ts' => time(),
     'stats' => [
@@ -236,14 +285,20 @@ $payload = [
         'total_students' => (int)$total_students,
         'total_teachers' => (int)$total_teachers,
         'timed_in_today' => (int)$timed_in_today,
+        'students_present' => (int)$timed_in_today,
         'absent_today' => (int)$absent_today,
+        'students_absent' => (int)$absent_today,
         'attendance_rate' => (float)$attendance_rate,
+        'att_pct' => (float)$attendance_rate,
         'timed_out_today' => (int)$timed_out_today,
         'teachers_in' => (int)$teachers_in,
+        'teachers_present' => (int)$teachers_in,
         'teachers_absent' => (int)$teachers_absent,
         'teacher_att_pct' => (float)$teacher_att_pct,
         'flag_count' => count($flagged_students),
         'inactive_students_count' => count($inactive_students),
+        'inactive_students' => count($inactive_students),
+        'students_late' => (int)$students_late,
     ],
     'flagged_students' => $flagged_students,
     'inactive_students' => $inactive_students,
@@ -251,6 +306,13 @@ $payload = [
     'schools_ranked' => array_slice($schools_ranked, 0, 10),
     'trend' => $div_trend,
 ];
+
+// Add principal-specific data
+if ($admin_role === 'principal' && $admin_school_id) {
+    $payload['section_data'] = $principal_section_data;
+    $payload['scan_logs'] = $principal_scan_logs;
+    $payload['consecutive_absent'] = $principal_consecutive_absent;
+}
 
 $json = json_encode($payload);
 file_put_contents($cacheFile, $json);
