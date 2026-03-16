@@ -88,63 +88,35 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $GLOBALS['db_conn'] = $conn;
 
 // ══════════════════════════════════════════════════════════════════
-// DATABASE-BACKED SESSIONS — ALWAYS ACTIVE
-// Prevents session loss on Railway deploys (ephemeral filesystem).
-// This block ensures every request uses DB-backed sessions:
-//   - If session_start() was called before this file: migrate to DB
-//   - If not: set up DB handler and start session now
-// After this block, $_SESSION is ALWAYS DB-backed and active.
+// DATABASE-BACKED SESSIONS
+// Stores sessions in MySQL so they survive Railway deploys.
 // ══════════════════════════════════════════════════════════════════
 require_once __DIR__ . '/db_sessions.php';
-
-// Ensure php_sessions table exists (only checks once per process)
 ensureSessionTable($conn);
 
-if (session_status() === PHP_SESSION_ACTIVE) {
-    // A file-based session is already running → migrate to DB
-    $existingData = $_SESSION;
-    $existingId = session_id();
+// Set cookie lifetime to 24 hours (must be before session_start)
+ini_set('session.gc_maxlifetime', 86400);
+ini_set('session.cookie_lifetime', 86400);
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Lax');
+
+if (session_status() === PHP_SESSION_NONE) {
+    // No session yet — start with DB handler
+    session_set_save_handler(new DbSessionHandler($conn), true);
+    session_start();
+} elseif (session_status() === PHP_SESSION_ACTIVE) {
+    // Session already started (by a file that still calls session_start())
+    // Migrate it to DB backend to keep data safe
+    $oldData = $_SESSION;
+    $oldId = session_id();
     session_write_close();
-
-    // Configure DB handler
-    $handler = new DbSessionHandler($conn);
-    session_set_save_handler($handler, true);
-    _configureSessionCookie();
-
-    // Reopen with same ID but DB backend
-    session_id($existingId);
+    session_set_save_handler(new DbSessionHandler($conn), true);
+    session_id($oldId);
     session_start();
-
-    // Merge: DB data (from read) + file data (preserved above)
-    // File data takes priority (it's the "live" data from the current session)
-    if (!empty($existingData)) {
-        foreach ($existingData as $k => $v) {
-            $_SESSION[$k] = $v;
-        }
+    foreach ($oldData as $k => $v) {
+        $_SESSION[$k] = $v;
     }
-} elseif (session_status() === PHP_SESSION_NONE) {
-    // No session started yet → start directly with DB backend
-    $handler = new DbSessionHandler($conn);
-    session_set_save_handler($handler, true);
-    _configureSessionCookie();
-    session_start();
-}
-
-/**
- * Configure session cookie for persistence.
- */
-function _configureSessionCookie() {
-    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-    session_set_cookie_params([
-        'lifetime' => 86400,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isSecure,
-        'httponly'  => true,
-        'samesite'  => 'Lax'
-    ]);
-    ini_set('session.gc_maxlifetime', 86400);
 }
 
 function getDBConnection() {
