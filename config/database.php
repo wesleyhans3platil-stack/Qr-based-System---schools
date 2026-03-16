@@ -87,6 +87,30 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 // Store connection globally
 $GLOBALS['db_conn'] = $conn;
 
+// ══════════════════════════════════════════════════════════════════
+// DATABASE-BACKED SESSIONS
+// Prevents session loss on Railway deploys (ephemeral filesystem).
+// If a file-based session is already started, we migrate it to DB.
+// ══════════════════════════════════════════════════════════════════
+require_once __DIR__ . '/db_sessions.php';
+
+if (session_status() === PHP_SESSION_ACTIVE) {
+    // Session already started (file-based) — migrate to DB
+    $sessionData = $_SESSION; // preserve existing data
+    $sessionId = session_id();
+    session_write_close();    // close file session
+    
+    initDbSessions();         // set DB handler
+    session_id($sessionId);   // reuse same session ID
+    session_start();          // re-open with DB backend
+    
+    // Restore data (merge in case DB had data too)
+    $_SESSION = array_merge($_SESSION, $sessionData);
+} else {
+    // Session not started yet — set up DB handler for when it does start
+    initDbSessions();
+}
+
 function getDBConnection() {
     return $GLOBALS['db_conn'];
 }
