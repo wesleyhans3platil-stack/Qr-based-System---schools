@@ -84,15 +84,74 @@ if (!$col_check || $col_check->num_rows == 0) {
 }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+// Create sessions table (used for stable session storage across deployments)
+$conn->query("CREATE TABLE IF NOT EXISTS sessions (
+    id VARCHAR(128) NOT NULL PRIMARY KEY,
+    data BLOB NOT NULL,
+    last_access INT(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 // Store connection globally
 $GLOBALS['db_conn'] = $conn;
 
-// ── Session: simple file-based, 24-hour lifetime ──
+// ── Session: database-backed handler for stability (Railway ephemeral filesystem)
 ini_set('session.gc_maxlifetime', 86400);
 ini_set('session.cookie_lifetime', 86400);
 ini_set('session.cookie_path', '/');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
+
+class DBSessionHandler implements SessionHandlerInterface {
+    private $conn;
+    private $ttl;
+
+    public function __construct($conn, $ttl=86400) {
+        $this->conn = $conn;
+        $this->ttl = $ttl;
+    }
+
+    public function open($savePath, $sessionName) {
+        return true;
+    }
+
+    public function close() {
+        return true;
+    }
+
+    public function read($id) {
+        $stmt = $this->conn->prepare('SELECT data FROM sessions WHERE id = ? LIMIT 1');
+        $stmt->bind_param('s', $id);
+        $stmt->execute();
+        $stmt->bind_result($data);
+        if ($stmt->fetch()) {
+            return $data;
+        }
+        return '';
+    }
+
+    public function write($id, $data) {
+        $time = time();
+        $stmt = $this->conn->prepare('REPLACE INTO sessions (id, data, last_access) VALUES (?, ?, ?)');
+        $stmt->bind_param('ssi', $id, $data, $time);
+        return $stmt->execute();
+    }
+
+    public function destroy($id) {
+        $stmt = $this->conn->prepare('DELETE FROM sessions WHERE id = ?');
+        $stmt->bind_param('s', $id);
+        return $stmt->execute();
+    }
+
+    public function gc($maxlifetime) {
+        $old = time() - $maxlifetime;
+        $stmt = $this->conn->prepare('DELETE FROM sessions WHERE last_access < ?');
+        $stmt->bind_param('i', $old);
+        return $stmt->execute();
+    }
+}
+
+$handler = new DBSessionHandler($conn, 86400);
+session_set_save_handler($handler, true);
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
