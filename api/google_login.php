@@ -4,7 +4,6 @@
  * Receives the Google ID token from the frontend, verifies it,
  * and logs in the matching admin by email.
  */
-session_start();
 require_once '../config/database.php';
 header('Content-Type: application/json');
 

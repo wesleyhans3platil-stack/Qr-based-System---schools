@@ -253,7 +253,6 @@
 <body>
 
 <?php
-session_start();
 // TEMPORARY: Database disabled for UI preview
 // require_once 'config/database.php';
 

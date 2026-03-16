@@ -5,7 +5,6 @@
  * ══════════════════════════════════════════════════════════════════
  * Simple, mobile-optimized login that redirects to app_dashboard.php
  */
-session_start();
 require_once 'config/database.php';
 
 // Already logged in? Go to dashboard

@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/database.php';
 require_once '../config/school_days.php';
 if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'superintendent') {

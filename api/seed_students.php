@@ -4,7 +4,6 @@
  * POST only, super_admin only.
  * Creates sections, assigns adviser, and generates QR codes.
  */
-session_start();
 require_once __DIR__ . '/../config/database.php';
 $conn = getDBConnection();
 

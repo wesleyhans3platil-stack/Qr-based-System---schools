@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/database.php';
 if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'super_admin') {
     header('Location: ../admin_login.php'); exit;

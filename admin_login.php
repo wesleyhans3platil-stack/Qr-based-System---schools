@@ -1,5 +1,5 @@
 <?php
-session_start();
+// database.php handles session_start() with DB backend automatically
 require_once 'config/database.php';
 
 $conn = getDBConnection();

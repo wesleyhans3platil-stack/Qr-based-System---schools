@@ -7,7 +7,6 @@
  * Role-aware: super_admin, superintendent, asst_superintendent, principal
  * Smooth AJAX refresh (no page flicker).
  */
-session_start();
 // Prevent WebView caching so updates show immediately
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');

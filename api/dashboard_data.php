@@ -3,9 +3,11 @@
  * Real-time Dashboard Data API
  * Returns all dashboard stats as JSON for live polling.
  */
-session_start();
 header('Content-Type: application/json');
 header('Cache-Control: no-cache, no-store, must-revalidate');
+
+// database.php handles session_start() with DB backend
+require_once __DIR__ . '/../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
     http_response_code(401);
@@ -23,7 +25,6 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheTtl)) {
     exit;
 }
 
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/school_days.php';
 
 $conn = getDBConnection();

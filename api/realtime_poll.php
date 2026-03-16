@@ -2,12 +2,7 @@
 /**
  * Lightweight polling endpoint for real-time data sync.
  * Returns a hash of current data state so clients can detect changes.
- * 
- * NOTE: This must NOT use long-polling because Railway uses PHP's
- * built-in server which is single-threaded. A 25-second hold blocks
- * ALL other requests, causing session timeouts and logouts.
  */
-session_start();
 require_once __DIR__ . '/../config/database.php';
 $conn = getDBConnection();
 

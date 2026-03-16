@@ -88,27 +88,63 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $GLOBALS['db_conn'] = $conn;
 
 // ══════════════════════════════════════════════════════════════════
-// DATABASE-BACKED SESSIONS
+// DATABASE-BACKED SESSIONS — ALWAYS ACTIVE
 // Prevents session loss on Railway deploys (ephemeral filesystem).
-// If a file-based session is already started, we migrate it to DB.
+// This block ensures every request uses DB-backed sessions:
+//   - If session_start() was called before this file: migrate to DB
+//   - If not: set up DB handler and start session now
+// After this block, $_SESSION is ALWAYS DB-backed and active.
 // ══════════════════════════════════════════════════════════════════
 require_once __DIR__ . '/db_sessions.php';
 
+// Ensure php_sessions table exists (only checks once per process)
+ensureSessionTable($conn);
+
 if (session_status() === PHP_SESSION_ACTIVE) {
-    // Session already started (file-based) — migrate to DB
-    $sessionData = $_SESSION; // preserve existing data
-    $sessionId = session_id();
-    session_write_close();    // close file session
-    
-    initDbSessions();         // set DB handler
-    session_id($sessionId);   // reuse same session ID
-    session_start();          // re-open with DB backend
-    
-    // Restore data (merge in case DB had data too)
-    $_SESSION = array_merge($_SESSION, $sessionData);
-} else {
-    // Session not started yet — set up DB handler for when it does start
-    initDbSessions();
+    // A file-based session is already running → migrate to DB
+    $existingData = $_SESSION;
+    $existingId = session_id();
+    session_write_close();
+
+    // Configure DB handler
+    $handler = new DbSessionHandler($conn);
+    session_set_save_handler($handler, true);
+    _configureSessionCookie();
+
+    // Reopen with same ID but DB backend
+    session_id($existingId);
+    session_start();
+
+    // Merge: DB data (from read) + file data (preserved above)
+    // File data takes priority (it's the "live" data from the current session)
+    if (!empty($existingData)) {
+        foreach ($existingData as $k => $v) {
+            $_SESSION[$k] = $v;
+        }
+    }
+} elseif (session_status() === PHP_SESSION_NONE) {
+    // No session started yet → start directly with DB backend
+    $handler = new DbSessionHandler($conn);
+    session_set_save_handler($handler, true);
+    _configureSessionCookie();
+    session_start();
+}
+
+/**
+ * Configure session cookie for persistence.
+ */
+function _configureSessionCookie() {
+    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    session_set_cookie_params([
+        'lifetime' => 86400,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isSecure,
+        'httponly'  => true,
+        'samesite'  => 'Lax'
+    ]);
+    ini_set('session.gc_maxlifetime', 86400);
 }
 
 function getDBConnection() {

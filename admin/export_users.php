@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/database.php';
 
 // Optional: restrict to logged-in admin if you use a session flag

@@ -3,7 +3,6 @@
  * One-time script to seed all Sipalay City schools.
  * Run once, then delete. Skips schools that already exist by name.
  */
-session_start();
 require_once __DIR__ . '/../config/database.php';
 $conn = getDBConnection();
 

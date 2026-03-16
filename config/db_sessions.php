@@ -1,24 +1,12 @@
 <?php
 /**
- * ══════════════════════════════════════════════════════════════════
- * DATABASE SESSION HANDLER
- * ══════════════════════════════════════════════════════════════════
- * 
- * Stores PHP sessions in MySQL instead of the filesystem.
- * This prevents session loss on Railway.app where the container
- * filesystem resets on every deploy.
- * 
- * Usage: require this file BEFORE session_start() in any entry point.
- *        The database.php config must be loaded first.
+ * Database Session Handler — stores PHP sessions in MySQL.
+ * Prevents session loss on Railway.app (ephemeral filesystem).
  */
 
-// Only initialize once
 if (defined('DB_SESSION_HANDLER_LOADED')) return;
 define('DB_SESSION_HANDLER_LOADED', true);
 
-/**
- * Create the sessions table if it doesn't exist.
- */
 function ensureSessionTable($conn) {
     static $checked = false;
     if ($checked) return;
@@ -40,11 +28,10 @@ class DbSessionHandler implements SessionHandlerInterface
 
     public function __construct($conn) {
         $this->conn = $conn;
-        $this->lifetime = (int)(ini_get('session.gc_maxlifetime') ?: 86400); // 24 hours default
+        $this->lifetime = (int)(ini_get('session.gc_maxlifetime') ?: 86400);
     }
 
     public function open($savePath, $sessionName): bool {
-        ensureSessionTable($this->conn);
         return true;
     }
 
@@ -52,8 +39,10 @@ class DbSessionHandler implements SessionHandlerInterface
         return true;
     }
 
-    public function read($id): string|false {
+    #[\ReturnTypeWillChange]
+    public function read($id) {
         $stmt = $this->conn->prepare("SELECT sess_data FROM php_sessions WHERE sess_id = ? AND sess_time > ?");
+        if (!$stmt) return '';
         $minTime = time() - $this->lifetime;
         $stmt->bind_param("si", $id, $minTime);
         $stmt->execute();
@@ -67,55 +56,29 @@ class DbSessionHandler implements SessionHandlerInterface
     public function write($id, $data): bool {
         $time = time();
         $stmt = $this->conn->prepare(
-            "INSERT INTO php_sessions (sess_id, sess_data, sess_lifetime, sess_time) 
-             VALUES (?, ?, ?, ?) 
+            "INSERT INTO php_sessions (sess_id, sess_data, sess_lifetime, sess_time)
+             VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE sess_data = VALUES(sess_data), sess_lifetime = VALUES(sess_lifetime), sess_time = VALUES(sess_time)"
         );
+        if (!$stmt) return false;
         $stmt->bind_param("ssii", $id, $data, $this->lifetime, $time);
         return $stmt->execute();
     }
 
     public function destroy($id): bool {
         $stmt = $this->conn->prepare("DELETE FROM php_sessions WHERE sess_id = ?");
+        if (!$stmt) return false;
         $stmt->bind_param("s", $id);
         return $stmt->execute();
     }
 
-    public function gc($maxlifetime): int|false {
+    #[\ReturnTypeWillChange]
+    public function gc($maxlifetime) {
         $minTime = time() - $maxlifetime;
         $stmt = $this->conn->prepare("DELETE FROM php_sessions WHERE sess_time < ?");
+        if (!$stmt) return false;
         $stmt->bind_param("i", $minTime);
         $stmt->execute();
         return $stmt->affected_rows;
     }
-}
-
-/**
- * Initialize DB-based sessions. Call this AFTER database.php is loaded
- * but BEFORE session_start().
- */
-function initDbSessions() {
-    if (session_status() === PHP_SESSION_ACTIVE) return; // Already started
-    
-    $conn = $GLOBALS['db_conn'] ?? null;
-    if (!$conn) return; // No DB connection, fall back to file sessions
-    
-    $handler = new DbSessionHandler($conn);
-    session_set_save_handler($handler, true);
-    
-    // Set session cookie params for better persistence
-    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-    
-    session_set_cookie_params([
-        'lifetime' => 86400,    // 24 hours
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isSecure,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    
-    // Increase PHP session lifetime 
-    ini_set('session.gc_maxlifetime', 86400); // 24 hours
 }
