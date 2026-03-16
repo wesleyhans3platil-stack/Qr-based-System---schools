@@ -1,6 +1,6 @@
 <?php
-if (!isset($_SESSION['admin_id'])) { header('Location: ../admin_login.php'); exit; }
 require_once '../config/database.php';
+if (!isset($_SESSION['admin_id'])) { header('Location: ../admin_login.php'); exit; }
 
 $current_page = 'school_browser';
 $admin_role = $_SESSION['admin_role'] ?? 'super_admin';
