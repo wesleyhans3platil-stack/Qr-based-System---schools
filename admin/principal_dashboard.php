@@ -1,7 +1,11 @@
 <?php
 require_once '../config/database.php';
 require_once '../config/school_days.php';
-if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'principal') {
+
+// Allow higher roles to view subordinate dashboards without forcing a logout.
+$role = $_SESSION['admin_role'] ?? '';
+$allowedRoles = ['principal', 'asst_superintendent', 'superintendent', 'super_admin'];
+if (!isset($_SESSION['admin_id']) || !in_array($role, $allowedRoles, true)) {
     header('Location: ../admin_login.php');
     exit;
 }

@@ -1,7 +1,11 @@
 <?php
 require_once '../config/database.php';
 require_once '../config/school_days.php';
-if (!isset($_SESSION['admin_id']) || $_SESSION['admin_role'] !== 'superintendent') {
+
+// Allow super admin to view this dashboard without being treated as logged out.
+$role = $_SESSION['admin_role'] ?? '';
+$allowedRoles = ['superintendent', 'super_admin'];
+if (!isset($_SESSION['admin_id']) || !in_array($role, $allowedRoles, true)) {
     header('Location: ../admin_login.php');
     exit;
 }
