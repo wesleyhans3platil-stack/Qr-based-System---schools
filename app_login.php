@@ -30,6 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($admin = $result->fetch_assoc()) {
             if (password_verify($password, $admin['password'])) {
+                // Prevent session fixation and reset stale session state
+                session_regenerate_id(true);
+                $_SESSION = [];
+
                 $_SESSION['admin_id'] = $admin['id'];
                 $_SESSION['admin_username'] = $admin['username'];
                 $_SESSION['admin_name'] = $admin['full_name'];

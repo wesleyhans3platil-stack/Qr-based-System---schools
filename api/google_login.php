@@ -71,6 +71,10 @@ if (!$admin) {
     exit;
 }
 
+// Prevent session fixation and reset stale session state
+session_regenerate_id(true);
+$_SESSION = [];
+
 // Log in the admin
 $_SESSION['admin_id'] = $admin['id'];
 $_SESSION['admin_username'] = $admin['username'];
