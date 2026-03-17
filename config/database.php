@@ -1,4 +1,9 @@
 <?php
+// Ensure output buffering is enabled so session headers can always be sent
+if (!ob_get_level()) {
+    ob_start();
+}
+
 /**
  * ══════════════════════════════════════════════════════════════════
  * DATABASE CONNECTION — Optimized for 800 concurrent scanner laptops
@@ -84,85 +89,53 @@ if (!$col_check || $col_check->num_rows == 0) {
 }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Create sessions table (used for stable session storage across deployments)
-$conn->query("CREATE TABLE IF NOT EXISTS sessions (
-    id VARCHAR(128) NOT NULL PRIMARY KEY,
-    data BLOB NOT NULL,
-    last_access INT(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
 // Store connection globally
 $GLOBALS['db_conn'] = $conn;
 
-// ── Session: database-backed handler for stability (Railway ephemeral filesystem)
+// ══════════════════════════════════════════════════════════════════
+// DATABASE-BACKED SESSIONS
+// Stores sessions in MySQL so they survive Railway deploys.
+// ══════════════════════════════════════════════════════════════════
+require_once __DIR__ . '/db_sessions.php';
+ensureSessionTable($conn);
+
+// Set cookie lifetime to 24 hours (must be before session_start)
 ini_set('session.gc_maxlifetime', 86400);
 ini_set('session.cookie_lifetime', 86400);
 ini_set('session.cookie_path', '/');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
 
-class DBSessionHandler implements SessionHandlerInterface {
-    private $conn;
-    private $ttl;
+// Ensure session cookie is always scoped to the current host and uses secure flag when possible.
+$secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+// $_SERVER['HTTP_HOST'] can include a port (e.g., "localhost:8080").
+// Cookies should use the host without the port.
+$cookieDomain = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? '');
+session_set_cookie_params([
+    'lifetime' => 86400,
+    'path' => '/',
+    'domain' => $cookieDomain,
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 
-    public function __construct($conn, $ttl=86400) {
-        $this->conn = $conn;
-        $this->ttl = $ttl;
+if (session_status() === PHP_SESSION_NONE) {
+    // No session yet — start with DB handler
+    session_set_save_handler(new DbSessionHandler($conn), true);
+    session_start();
+} elseif (session_status() === PHP_SESSION_ACTIVE) {
+    // Session already started (by a file that still calls session_start())
+    // Migrate it to DB backend to keep data safe
+    $oldData = $_SESSION;
+    $oldId = session_id();
+    session_write_close();
+    session_set_save_handler(new DbSessionHandler($conn), true);
+    session_id($oldId);
+    session_start();
+    foreach ($oldData as $k => $v) {
+        $_SESSION[$k] = $v;
     }
-
-    public function open(string $savePath, string $sessionName): bool {
-        return true;
-    }
-
-    public function close(): bool {
-        return true;
-    }
-
-    public function read(string $id): string|false {
-        $stmt = $this->conn->prepare('SELECT data FROM sessions WHERE id = ? LIMIT 1');
-        $stmt->bind_param('s', $id);
-        $stmt->execute();
-        $stmt->bind_result($data);
-        if ($stmt->fetch()) {
-            return $data;
-        }
-        return '';
-    }
-
-    public function write(string $id, string $data): bool {
-        $time = time();
-        $stmt = $this->conn->prepare('REPLACE INTO sessions (id, data, last_access) VALUES (?, ?, ?)');
-        $stmt->bind_param('ssi', $id, $data, $time);
-        return $stmt->execute();
-    }
-
-    public function destroy(string $id): bool {
-        $stmt = $this->conn->prepare('DELETE FROM sessions WHERE id = ?');
-        $stmt->bind_param('s', $id);
-        return $stmt->execute();
-    }
-
-    public function gc(int $maxlifetime): int|false {
-        $old = time() - $maxlifetime;
-        $stmt = $this->conn->prepare('DELETE FROM sessions WHERE last_access < ?');
-        $stmt->bind_param('i', $old);
-        if ($stmt->execute()) {
-            return $stmt->affected_rows;
-        }
-        return false;
-    }
-}
-
-$handler = new DBSessionHandler($conn, 86400);
-if (!headers_sent()) {
-    session_set_save_handler($handler, true);
-
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-} else {
-    // If headers already sent, sessions can't be started here.
-    // This typically means output occurred before including this file.
 }
 
 function getDBConnection() {
