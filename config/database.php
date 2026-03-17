@@ -108,9 +108,20 @@ ini_set('session.cookie_samesite', 'Lax');
 
 // Ensure session cookie is always scoped to the current host and uses secure flag when possible.
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-// $_SERVER['HTTP_HOST'] can include a port (e.g., "localhost:8080").
-// Cookies should use the host without the port.
-$cookieDomain = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? '');
+// Prefer SERVER_NAME (no port); fallback to HTTP_HOST if needed.
+$host = $_SERVER['SERVER_NAME'] ?? ($_SERVER['HTTP_HOST'] ?? '');
+$host = preg_replace('/:\d+$/', '', $host);
+
+// For local development, let PHP choose the default domain.
+$cookieDomain = '';
+if ($host && $host !== 'localhost' && !preg_match('/^\d+\.\d+\.\d+\.\d+$/', $host)) {
+    // Use leading dot to support subdomains (e.g. www.example.com).
+    $cookieDomain = '.' . $host;
+}
+
+// Apply cookie settings via ini and explicit params (to handle environments where cookie params
+// may be ignored due to pre-start session or custom session handlers).
+ini_set('session.cookie_domain', $cookieDomain);
 session_set_cookie_params([
     'lifetime' => 86400,
     'path' => '/',
@@ -136,6 +147,19 @@ if (session_status() === PHP_SESSION_NONE) {
     foreach ($oldData as $k => $v) {
         $_SESSION[$k] = $v;
     }
+}
+
+// Ensure the session cookie is re-sent with the correct domain and flags.
+// This helps in environments where the cookie is not preserved across requests.
+if (session_status() === PHP_SESSION_ACTIVE) {
+    setcookie(session_name(), session_id(), [
+        'expires' => time() + 86400,
+        'path' => '/',
+        'domain' => $cookieDomain,
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
 function getDBConnection() {
