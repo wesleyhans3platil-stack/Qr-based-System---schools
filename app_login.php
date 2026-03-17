@@ -16,6 +16,18 @@ if (isset($_SESSION['admin_id'])) {
 $conn = getDBConnection();
 $error = '';
 
+// Debug helper: show session and cookie state on demand
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    header('Content-Type: text/plain');
+    echo "SESSION:\n";
+    var_export($_SESSION);
+    echo "\n\nCOOKIES:\n";
+    var_export($_COOKIE);
+    echo "\n\nSession name: " . session_name() . "\n";
+    echo "Session id: " . session_id() . "\n";
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';

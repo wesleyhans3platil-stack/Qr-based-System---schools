@@ -5,6 +5,18 @@ require_once 'config/database.php';
 $conn = getDBConnection();
 $error = '';
 
+// Debug helper: show session and cookie state on demand
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    header('Content-Type: text/plain');
+    echo "SESSION:\n";
+    var_export($_SESSION);
+    echo "\n\nCOOKIES:\n";
+    var_export($_COOKIE);
+    echo "\n\nSession name: " . session_name() . "\n";
+    echo "Session id: " . session_id() . "\n";
+    exit;
+}
+
 // Fetch Google Client ID from settings
 $g_res = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key='google_client_id'");
 $google_client_id = $g_res ? ($g_res->fetch_assoc()['setting_value'] ?? '') : '';
